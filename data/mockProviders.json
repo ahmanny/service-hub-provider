@@ -1,0 +1,202 @@
+[
+  {
+    "_id": "prov-001",
+    "firstName": "John",
+    "lastName": "Adewale",
+    "service": "Plumber",
+    "price": 5000,
+    "rating": 4.6,
+    "location": { "longitude": 8.8888427, "latitude": 9.8493579 },
+    "profilePicture": "https://i.pravatar.cc/150?img=1"
+  },
+  {
+    "_id": "prov-002",
+    "firstName": "Samuel",
+    "lastName": "Okorie",
+    "service": "Electrician",
+    "price": 5000,
+    "rating": 4.4,
+    "location": { "longitude": 8.88885, "latitude": 9.8495 },
+    "profilePicture": "https://i.pravatar.cc/150?img=2"
+  },
+  {
+    "_id": "prov-003",
+    "firstName": "Aisha",
+    "lastName": "Bello",
+    "service": "House Cleaning",
+    "price": 5000,
+    "rating": 4.8,
+    "location": { "longitude": 8.88875, "latitude": 9.8491 },
+    "profilePicture": null
+  },
+  {
+    "_id": "prov-004",
+    "firstName": "Grace",
+    "lastName": "Onyekachi",
+    "service": "Hair Stylist",
+    "price": 5000,
+    "rating": 4.9,
+    "location": { "longitude": 8.88895, "latitude": 9.8496 },
+    "profilePicture": "https://i.pravatar.cc/150?img=3"
+  },
+  {
+    "_id": "prov-005",
+    "firstName": "Peter",
+    "lastName": "Okafor",
+    "service": "Barber",
+    "price": 5000,
+    "rating": 4.5,
+    "location": { "longitude": 8.889, "latitude": 9.8492 },
+    "profilePicture": "https://i.pravatar.cc/150?img=4"
+  },
+  {
+    "_id": "prov-006",
+    "firstName": "Ruth",
+    "lastName": "Williams",
+    "service": "Hair Stylist",
+    "price": 5000,
+    "rating": 4.9,
+    "location": { "longitude": 8.8888, "latitude": 9.8494 },
+    "profilePicture": null
+  },
+  {
+    "_id": "prov-007",
+    "firstName": "David",
+    "lastName": "Lawal",
+    "service": "House Cleaning",
+    "price": 5000,
+    "rating": 4.4,
+    "location": { "longitude": 8.8889, "latitude": 9.849 },
+    "profilePicture": "https://i.pravatar.cc/150?img=5"
+  },
+  {
+    "_id": "prov-008",
+    "firstName": "Tunde",
+    "lastName": "Balogun",
+    "service": "Barber",
+    "price": 5000,
+    "rating": 4.6,
+    "location": { "longitude": 8.8887, "latitude": 9.8496 },
+    "profilePicture": null
+  },
+  {
+    "_id": "prov-009",
+    "firstName": "Ibrahim",
+    "lastName": "Musa",
+    "service": "Plumber",
+    "price": 5000,
+    "rating": 4.3,
+    "location": { "longitude": 8.88885, "latitude": 9.8492 },
+    "profilePicture": "https://i.pravatar.cc/150?img=6"
+  },
+  {
+    "_id": "prov-010",
+    "firstName": "Ngozi",
+    "lastName": "Eze",
+    "service": "Electrician",
+    "price": 5000,
+    "rating": 4.7,
+    "location": { "longitude": 8.8889, "latitude": 9.8495 },
+    "profilePicture": null
+  },
+  {
+    "_id": "prov-011",
+    "firstName": "Sadiq",
+    "lastName": "Mohammed",
+    "service": "House Cleaning",
+    "price": 5000,
+    "rating": 4.2,
+    "location": { "longitude": 8.8905, "latitude": 9.85 },
+    "profilePicture": "https://i.pravatar.cc/150?img=7"
+  },
+  {
+    "_id": "prov-012",
+    "firstName": "Blessing",
+    "lastName": "Uche",
+    "service": "Hair Stylist",
+    "price": 5000,
+    "rating": 4.8,
+    "location": { "longitude": 8.891, "latitude": 9.851 },
+    "profilePicture": null
+  },
+  {
+    "_id": "prov-013",
+    "firstName": "Kelvin",
+    "lastName": "Mensah",
+    "service": "Barber",
+    "price": 5000,
+    "rating": 4.4,
+    "location": { "longitude": 8.887, "latitude": 9.852 },
+    "profilePicture": "https://i.pravatar.cc/150?img=8"
+  },
+  {
+    "_id": "prov-014",
+    "firstName": "Fatima",
+    "lastName": "Sule",
+    "service": "House Cleaning",
+    "price": 5000,
+    "rating": 4.6,
+    "location": { "longitude": 8.892, "latitude": 9.853 },
+    "profilePicture": "https://i.pravatar.cc/150?img=9"
+  },
+  {
+    "_id": "prov-015",
+    "firstName": "Michael",
+    "lastName": "Johnson",
+    "service": "Electrician",
+    "price": 5000,
+    "rating": 4.5,
+    "location": { "longitude": 8.889, "latitude": 9.8496 },
+    "profilePicture": null
+  },
+  {
+    "_id": "prov-016",
+    "firstName": "Abdul",
+    "lastName": "Rahman",
+    "service": "Plumber",
+    "price": 5000,
+    "rating": 4.7,
+    "location": { "longitude": 8.88895, "latitude": 9.8491 },
+    "profilePicture": "https://i.pravatar.cc/150?img=10"
+  },
+  {
+    "_id": "prov-017",
+    "firstName": "Zainab",
+    "lastName": "Abdullahi",
+    "service": "Hair Stylist",
+    "price": 5000,
+    "rating": 4.9,
+    "location": { "longitude": 8.8888, "latitude": 9.8495 },
+    "profilePicture": null
+  },
+  {
+    "_id": "prov-018",
+    "firstName": "Emeka",
+    "lastName": "Nwoye",
+    "service": "Barber",
+    "price": 5000,
+    "rating": 4.3,
+    "location": { "longitude": 8.8889, "latitude": 9.8493 },
+    "profilePicture": "https://i.pravatar.cc/150?img=11"
+  },
+  {
+    "_id": "prov-019",
+    "firstName": "Hadiza",
+    "lastName": "Ahmed",
+    "service": "House Cleaning",
+    "price": 5000,
+    "rating": 4.8,
+    "location": { "longitude": 8.88895, "latitude": 9.8492 },
+    "profilePicture": null
+  },
+  {
+    "_id": "prov-020",
+    "firstName": "Tosin",
+    "lastName": "Adebayo",
+    "service": "Plumber",
+    "price": 5000,
+    "rating": 4.4,
+    "location": { "longitude": 8.88885, "latitude": 9.8494 },
+    "profilePicture": "https://i.pravatar.cc/150?img=12"
+  }
+]
