@@ -1,104 +1,49 @@
+import { MenuGroup, MenuItem } from "@/components/profile/ProfileHelpers";
+import { AppAvatar } from "@/components/ui/AppAvatar";
 import { ThemedText } from "@/components/ui/Themed";
+import { SERVICE_META } from "@/constants/services";
 import { useLogout } from "@/hooks/auth/useLogout";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { useAddressActions } from "@/hooks/useAddressActions";
+import { DAYS_UI } from "@/lib/utils/date.utils";
 import { useAuthStore } from "@/stores/auth.store";
+import { IAvailabilityDay } from "@/types/provider.types";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { router } from "expo-router";
-import React, { useRef, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useRouter } from "expo-router";
+import React from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AddressOptionsSheet } from "../BottomSheets/AddressOptionsSheet";
-import { AppAvatar } from "../ui/AppAvatar";
-
-// 1. DEFINE TYPES
-interface ProfileData {
-  user: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    rating: number;
-    totalBookings: number;
-    isVerified: boolean;
-    avatarUrl?: string;
-    location?: any;
-  };
-}
-
-// 2. MOCK DATA OBJECT
-const MOCK_DATA: ProfileData = {
-  user: {
-    firstName: "Solomon",
-    lastName: "Ahman",
-    email: "solomon@email.com",
-    rating: 4.8,
-    totalBookings: 12,
-    isVerified: false,
-    avatarUrl: undefined, // Using initials for now
-  },
-};
-
-const mockRating = 4.5;
-const mockTotalBookings = 12;
 
 export default function ProfileScreen() {
-  const [selectedAddress, setSelectedAddress] = useState<any>(null);
+  const router = useRouter();
   const profile = useAuthStore((s) => s.user);
+
   const tint = useThemeColor({}, "tint");
   const bg = useThemeColor({}, "background");
-  const muted = useThemeColor({}, "placeholder");
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const border = useThemeColor({}, "border");
+  const success = useThemeColor({}, "success");
+  const danger = useThemeColor({}, "danger");
+  const warning = useThemeColor({}, "warning");
+
+  const { mutateAsync: logout, isPending: isLoggingOut } = useLogout();
 
   if (!profile) return null;
 
   const fullName = `${profile.firstName} ${profile.lastName}`;
+  const isApproved = profile.status === "approved";
+  const meta = SERVICE_META[profile.serviceType];
 
-  const { mutateAsync, isPending } = useLogout();
+  // active days
+  const getAvailabilitySubtitle = (availability: IAvailabilityDay[]) => {
+    if (!availability || availability.length === 0) return "Not set";
 
-  const handleAddressPress = (address: any) => {
-    setSelectedAddress(address);
-    setTimeout(() => {
-      bottomSheetRef.current?.present();
-    }, 100);
-  };
-  const handleEditAddress = () => {
-    bottomSheetRef.current?.dismiss();
-    if (!selectedAddress) return;
+    const activeDays = availability
+      .filter((day) => !day.isClosed)
+      .map((day) => DAYS_UI[day.dayOfWeek === 0 ? 6 : day.dayOfWeek - 1]); // Adjusting for your DAYS_UI order
 
-    console.log(selectedAddress);
-    router.push({
-      pathname: "/(tabs)/profile/set-location-modal",
-      params: {
-        addressId: selectedAddress._id,
-        label: selectedAddress.label,
-        initialLat: selectedAddress.location.coordinates[1],
-        initialLng: selectedAddress.location.coordinates[0],
-        edit: "true",
-      },
-    });
-  };
-
-  const { deleteAddress, isDeleting } = useAddressActions();
-  const handleDelete = async () => {
-    if (!selectedAddress?._id) return;
-
-    try {
-      await deleteAddress(selectedAddress._id);
-      bottomSheetRef.current?.dismiss();
-      // Reset selection after successful delete
-      setSelectedAddress(null);
-    } catch (error) {
-      console.error("Failed to delete address:", error);
-    }
+    if (activeDays.length === 7) return "Every day";
+    if (activeDays.length === 0) return "Closed";
+    return activeDays.join(", ");
   };
 
   return (
@@ -107,70 +52,179 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 60 }}
       >
-        {/* HEADER */}
+        {/* HEADER SECTION */}
         <View style={styles.header}>
           <AppAvatar
-            shape="square"
-            source={{ uri: profile.avatarUrl }}
+            size={150}
+            source={
+              profile.profilePicture ? { uri: profile.profilePicture } : null
+            }
             initials={`${profile.firstName[0]}${profile.lastName[0]}`}
-            onEdit={() => {}}
           />
-
-          <ThemedText type="defaultSemiBold" style={styles.userName}>
+          <ThemedText type="title" style={styles.userName}>
             {fullName}
           </ThemedText>
+          <ThemedText style={styles.serviceType}>{meta.label}</ThemedText>
 
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={16} color="#FFCC00" />
+          <View style={styles.ratingBadge}>
+            <Ionicons name="star" size={14} color="#FFCC00" />
             <ThemedText style={styles.ratingText}>
-              {mockRating} rating{" "}
-              <ThemedText style={{ opacity: 0.5 }}>
-                ({mockTotalBookings} bookings)
-              </ThemedText>
+              {profile.rating.toFixed(1)}{" "}
+              <ThemedText style={styles.reviewCount}>(128 reviews)</ThemedText>
             </ThemedText>
+          </View>
+
+          <View
+            style={[
+              styles.statusContainer,
+              {
+                backgroundColor: profile.isAvailable
+                  ? `${success}10`
+                  : "rgba(0,0,0,0.05)",
+                borderColor: profile.isAvailable ? `${success}30` : border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: profile.isAvailable ? success : "#999" },
+              ]}
+            />
+            <View style={{ flex: 1 }}>
+              <ThemedText
+                style={[
+                  styles.statusLabel,
+                  { color: profile.isAvailable ? success : undefined },
+                ]}
+              >
+                You are currently {profile.isAvailable ? "Online" : "Offline"}
+              </ThemedText>
+              <ThemedText style={styles.statusSub}>
+                {profile.isAvailable
+                  ? "Clients can see you and book your services."
+                  : "Your profile is hidden from the marketplace."}
+              </ThemedText>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/home")} // Redirect to Home where the actual toggle lives
+              style={[
+                styles.manageBtn,
+                { backgroundColor: profile.isAvailable ? success : "#666" },
+              ]}
+            >
+              <ThemedText style={styles.manageBtnText}>MANAGE</ThemedText>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/*VERIFICATION BANNER*/}
-        {!profile.isVerified && (
-          <TouchableOpacity
-            activeOpacity={0.9}
+        {profile.status !== "approved" && (
+          <View
             style={[
               styles.banner,
-              { backgroundColor: tint + "15", borderColor: tint + "30" },
+              {
+                backgroundColor:
+                  profile.status === "pending" ? `${warning}15` : `${danger}15`,
+                borderColor: profile.status === "pending" ? warning : danger,
+              },
             ]}
           >
-            <View style={[styles.bannerIcon, { backgroundColor: tint }]}>
-              <Ionicons name="shield-checkmark" size={20} color="white" />
-            </View>
+            <Ionicons
+              name={
+                profile.status === "pending"
+                  ? "time-outline"
+                  : "alert-circle-outline"
+              }
+              size={24}
+              color={profile.status === "pending" ? warning : danger}
+            />
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>
-                Complete Verification
+              <ThemedText type="defaultSemiBold">
+                {profile.status === "pending"
+                  ? "Profile Under Review"
+                  : "Profile Rejected"}
               </ThemedText>
-              <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
-                Get a smoother experience and higher trust.
+              <ThemedText style={styles.bannerSubtext}>
+                {profile.status === "pending"
+                  ? "You can edit details, but you can't accept jobs yet."
+                  : profile.rejectionReason ||
+                    "Please update your verification details."}
               </ThemedText>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={tint} />
-          </TouchableOpacity>
+          </View>
         )}
 
-        {/*MENU GROUPS*/}
         <View style={{ paddingHorizontal: 20 }}>
-          <MenuGroup title="Account">
+          {/* BUSINESS GROUP */}
+          <MenuGroup title="Business & Services">
             <MenuItem
               icon="person-outline"
-              label="Personal info"
-              onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/profile/personal-info",
-                })
-              }
+              label="Edit Profile"
+              subtitle="Name, Email, Phone, Photo, Bio"
+              onPress={() => router.push("/(profile-edit)/personal-info")}
             />
-            {/* <MenuItem icon="card-outline" label="Payments" /> */}
             <MenuItem
-              icon="receipt-outline"
-              label="Booking history"
+              family="FontAwesome6"
+              icon={meta.icon}
+              label="Services & Prices"
+              value={`${profile.services?.length || 0} active`}
+              onPress={() => router.push("/(profile-edit)/services-prices")}
+            />
+            <MenuItem
+              icon="bicycle-outline"
+              label="Delivery Mode"
+              subtitle={
+                profile.homeServiceAvailable && profile.offersShopVisit
+                  ? "Home Service & In-Shop"
+                  : profile.homeServiceAvailable
+                    ? "Home Service Only"
+                    : profile.offersShopVisit
+                      ? "In-Shop Only"
+                      : "Not set"
+              }
+              onPress={() => router.push("/(profile-edit)/delivery-mode")}
+            />
+            <MenuItem
+              icon="storefront-outline"
+              label="Shop Address"
+              subtitle={profile.shopAddress?.address || "Not set"}
+              onPress={() => router.push("/(profile-edit)/shop-location")}
+            />
+            <MenuItem
+              icon="map-outline"
+              label="Service Area"
+              subtitle={profile.serviceArea?.address || "Not set"}
+              onPress={() => router.push("/(profile-edit)/service-area")}
+            />
+            <MenuItem
+              icon="calendar-outline"
+              label="Availability"
+              subtitle={getAvailabilitySubtitle(profile.availability)}
+              onPress={() => router.push("/(profile-edit)/availability")}
+            />
+            <MenuItem
+              icon="card-outline"
+              label="Payout Details"
+              onPress={() => router.push("/(profile-edit)/payout-details")}
+            />
+          </MenuGroup>
+
+          {/* PERFORMANCE GROUP */}
+          <MenuGroup title="Performance">
+            <MenuItem
+              icon="star-outline"
+              label="Reviews & Ratings"
+              onPress={() => {}}
+            />
+            <MenuItem
+              icon="bar-chart-outline"
+              label="Earnings"
+              onPress={() => {}}
+            />
+            <MenuItem
+              icon="time-outline"
+              label="Booking History"
               onPress={() =>
                 router.push({
                   pathname: "/(tabs)/bookings",
@@ -180,108 +234,49 @@ export default function ProfileScreen() {
             />
           </MenuGroup>
 
-          <MenuGroup title="Saved places">
-            {profile.addresses && profile.addresses.length > 0 ? (
-              profile.addresses.map((item) => (
-                <MenuItem
-                  key={item._id}
-                  icon={
-                    item.label === "Home"
-                      ? "home-outline"
-                      : item.label === "Work"
-                      ? "briefcase-outline"
-                      : "location-outline"
-                  }
-                  label={`${item.label} Address`}
-                  subtitle={item.formattedAddress}
-                  onPress={() => handleAddressPress(item)}
-                />
-              ))
-            ) : (
-              <TouchableOpacity
-                style={styles.addPlaceBtn}
-                activeOpacity={0.6}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(tabs)/profile/set-location-modal",
-                    params: { edit: "false", label: "Home" }, // Defaulting to home for new
-                  })
-                }
-              >
-                <Ionicons name="add" size={20} color={tint} />
-                <ThemedText
-                  style={{ color: tint, fontWeight: "600", marginLeft: 4 }}
-                >
-                  Set Home Address
-                </ThemedText>
-              </TouchableOpacity>
-            )}
-
-            {/* Only render sheet if we have a selection to avoid the "Text strings" error */}
-            {selectedAddress && (
-              <AddressOptionsSheet
-                ref={bottomSheetRef}
-                label={selectedAddress.label}
-                address={selectedAddress.formattedAddress}
-                onEdit={handleEditAddress}
-                onDelete={handleDelete}
-                isDeleting={isDeleting}
-              />
-            )}
+          {/* TRUST & SAFETY */}
+          <MenuGroup title="Trust & Safety">
+            <MenuItem
+              icon="id-card-outline"
+              label="Identity Verification"
+              value={profile.verification ? "Verified" : "Action Required"}
+              onPress={() => {}}
+            />
+            <MenuItem
+              icon="document-text-outline"
+              label="Terms & Policies"
+              onPress={() => {}}
+            />
           </MenuGroup>
 
-          <MenuGroup title="Preferences">
-            <MenuItem icon="notifications-outline" label="Notifications" />
-            <View style={styles.menuItem}>
-              <View style={styles.menuLeft}>
-                <Ionicons name="moon-outline" size={22} color={muted} />
-                <ThemedText style={[styles.menuLabel, { marginLeft: 28 }]}>
-                  Dark mode
-                </ThemedText>
-              </View>
-              <Switch
-                value={isDarkMode}
-                onValueChange={setIsDarkMode}
-                trackColor={{ false: "#D1D5DB", true: tint }}
-              />
-            </View>
-            <MenuItem icon="globe-outline" label="Language" value="English" />
-          </MenuGroup>
-
+          {/* SUPPORT */}
           <MenuGroup title="Support">
-            <MenuItem icon="help-circle-outline" label="Help center" />
             <MenuItem
               icon="chatbubble-ellipses-outline"
-              label="Contact support"
+              label="Contact Support"
+              onPress={() => {}}
             />
-            <MenuItem icon="shield-outline" label="Safety" />
+            <MenuItem
+              icon="help-circle-outline"
+              label="Help & FAQs"
+              onPress={() => {}}
+            />
           </MenuGroup>
 
-          <MenuGroup title="Legal">
-            <MenuItem icon="document-text-outline" label="Terms & conditions" />
-            <MenuItem icon="lock-closed-outline" label="Privacy policy" />
-          </MenuGroup>
-
+          {/* LOGOUT */}
           <TouchableOpacity
-            style={[styles.logoutBtn, isPending && { opacity: 0.6 }]}
-            activeOpacity={0.7}
-            disabled={isPending}
-            onPress={() =>
-              mutateAsync(
-                void {
-                  onSuccess: () => {
-                    router.push("/(auth)");
-                  },
-                }
-              )
-            }
+            style={styles.logoutBtn}
+            onPress={() => logout()}
+            disabled={isLoggingOut}
           >
-            {isPending ? (
-              <ActivityIndicator size="small" color="#FF3B30" />
+            {isLoggingOut ? (
+              <ActivityIndicator color={danger} />
             ) : (
               <>
-                <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
-                <ThemedText style={styles.logoutText}>Log out</ThemedText>
+                <Ionicons name="log-out-outline" size={22} color={danger} />
+                <ThemedText style={[styles.logoutText, { color: danger }]}>
+                  Log out
+                </ThemedText>
               </>
             )}
           </TouchableOpacity>
@@ -291,129 +286,78 @@ export default function ProfileScreen() {
   );
 }
 
-// Internal Helper Components
-
-const MenuGroup = ({ title, children }: any) => (
-  <View style={styles.menuGroup}>
-    <ThemedText style={styles.groupTitle}>{title}</ThemedText>
-    <View>{children}</View>
-  </View>
-);
-
-const MenuItem = ({ icon, label, subtitle, value, onPress }: any) => {
-  const muted = useThemeColor({}, "placeholder");
-
-  return (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <View style={styles.menuLeft}>
-        <Ionicons name={icon} size={22} color={muted} />
-        <View style={{ marginLeft: 14, flex: 1, paddingRight: 8 }}>
-          <ThemedText
-            style={[styles.menuLabel, subtitle && { marginLeft: 0 }]}
-            numberOfLines={1}
-          >
-            {label}
-          </ThemedText>
-
-          {subtitle && (
-            <ThemedText
-              style={{ fontSize: 13, opacity: 0.5, marginTop: 2 }}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {subtitle}
-            </ThemedText>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.menuRight}>
-        {value && <ThemedText style={styles.menuValue}>{value}</ThemedText>}
-        <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
-      </View>
-    </TouchableOpacity>
-  );
-};
-
-// Styles
-
 const styles = StyleSheet.create({
-  header: {
-    alignItems: "center",
-    paddingVertical: 40,
-  },
-
-  userName: { fontSize: 22, marginBottom: 4, marginTop: 16 },
-  userEmail: { opacity: 0.5, fontSize: 14 },
-  ratingRow: {
+  header: { alignItems: "center", paddingVertical: 30 },
+  userName: { fontSize: 24, marginTop: 12 },
+  serviceType: { opacity: 0.6, fontSize: 16, marginBottom: 8 },
+  ratingBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.05)",
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 20,
   },
-  ratingText: { marginLeft: 6, fontSize: 13, fontWeight: "600" },
+  ratingText: { marginLeft: 5, fontWeight: "700", fontSize: 14 },
+  reviewCount: { fontWeight: "400", opacity: 0.5 },
 
-  banner: {
-    marginHorizontal: 20,
-    marginBottom: 30,
+  statusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "90%",
     padding: 16,
     borderRadius: 20,
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  statusLabel: {
+    fontWeight: "800",
+    fontSize: 14,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  statusSub: {
+    fontSize: 12,
+    opacity: 0.6,
+    marginTop: 2,
+  },
+  manageBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  manageBtnText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  banner: {
+    marginHorizontal: 20,
+    marginBottom: 25,
+    padding: 16,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
   },
-  bannerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  menuGroup: { marginBottom: 28 },
-  groupTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    opacity: 0.5,
-    letterSpacing: 1,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  menuItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-  },
-  menuLeft: { flexDirection: "row", alignItems: "center" },
-  menuLabel: { marginLeft: 14, fontSize: 16 },
-  menuRight: { flexDirection: "row", alignItems: "center" },
-  menuValue: { marginRight: 8, opacity: 0.5, fontSize: 14 },
-
-  addPlaceBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    marginTop: 4,
-  },
+  bannerSubtext: { fontSize: 13, opacity: 0.8, marginTop: 2 },
 
   logoutBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
+    paddingVertical: 18,
     marginTop: 10,
     borderRadius: 16,
-    backgroundColor: "rgba(255, 59, 48, 0.1)",
+    backgroundColor: "rgba(255, 59, 48, 0.08)",
   },
-  logoutText: {
-    marginLeft: 8,
-    color: "#FF3B30",
-    fontWeight: "700",
-    fontSize: 16,
-  },
+  logoutText: { marginLeft: 10, fontWeight: "700", fontSize: 16 },
 });

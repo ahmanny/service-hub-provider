@@ -1,6 +1,7 @@
 import { ThemedButton, ThemedText } from "@/components/ui/Themed";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { reverseGeocode, searchAddress } from "@/lib/mapbox";
+import { useAuthStore } from "@/stores/auth.store";
 import { Ionicons } from "@expo/vector-icons";
 import Mapbox from "@rnmapbox/maps";
 import * as turf from "@turf/turf";
@@ -17,8 +18,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MapPin } from "../ui/MapPin";
 
 interface CoverageLocationProps {
+  isPending?: boolean;
   initialLat: number;
   initialLng: number;
   initialRadius: number;
@@ -33,14 +37,19 @@ interface CoverageLocationProps {
 const RADIUS_OPTIONS = [2, 5, 10, 20];
 
 export default function SetLocationCoverageModal({
+  isPending,
   initialLat,
   initialLng,
   initialRadius,
   onConfirm,
 }: CoverageLocationProps) {
+  const userLocation = useAuthStore((s) => s.userLocation);
+  const insets = useSafeAreaInsets();
   const tint = useThemeColor({}, "tint");
   const tintLight = useThemeColor({}, "tintLight");
   const cardBg = useThemeColor({}, "card");
+  const textColor = useThemeColor({}, "text");
+  const placeholderTextColor = useThemeColor({}, "placeholder");
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -54,15 +63,15 @@ export default function SetLocationCoverageModal({
 
   const circleFeature = turf.circle([lng, lat], radius, {
     units: "kilometers",
-    steps: 64, // Makes the circle smooth
+    steps: 64,
   });
 
   useEffect(() => {
     const updateAddress = async () => {
       setIsGeocoding(true);
       try {
-        const addr = await reverseGeocode(lat, lng);
-        setAddress(addr);
+        const result = await reverseGeocode(lat, lng);
+        setAddress(result.formattedAddress);
       } finally {
         setIsGeocoding(false);
       }
@@ -76,7 +85,7 @@ export default function SetLocationCoverageModal({
       const places = await searchAddress(text);
       setResults(places);
     }, 500),
-    []
+    [],
   );
 
   const selectPlace = (place: any) => {
@@ -87,6 +96,14 @@ export default function SetLocationCoverageModal({
     setResults([]);
   };
 
+  const handleGetCurrentLocation = async () => {
+    if (!userLocation) {
+      return;
+    }
+
+    setLat(userLocation[1]);
+    setLng(userLocation[0]);
+  };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -96,7 +113,7 @@ export default function SetLocationCoverageModal({
         {/* FLOATING SEARCH BAR */}
         <View style={styles.floatingSearchContainer}>
           <View style={[styles.searchBar, { backgroundColor: cardBg }]}>
-            <Ionicons name="search" size={20} color="#999" />
+            <Ionicons name="search" size={20} color={placeholderTextColor} />
             <TextInput
               placeholder="Search center location..."
               value={query}
@@ -104,12 +121,16 @@ export default function SetLocationCoverageModal({
                 setQuery(t);
                 debouncedSearch(t);
               }}
-              style={styles.input}
-              placeholderTextColor="#999"
+              style={[styles.input, { color: textColor }]}
+              placeholderTextColor={placeholderTextColor}
             />
             {query.length > 0 && (
               <TouchableOpacity onPress={() => setQuery("")}>
-                <Ionicons name="close-circle" size={18} color="#999" />
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={placeholderTextColor}
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -180,14 +201,27 @@ export default function SetLocationCoverageModal({
               setLng(newLng);
             }}
           >
-            <View style={[styles.pinCircle, { backgroundColor: tint }]}>
-              <View style={styles.pinInner} />
-            </View>
+            <MapPin tint={tint} />
           </Mapbox.PointAnnotation>
         </Mapbox.MapView>
 
+        <TouchableOpacity
+          style={[styles.locateBtn, { backgroundColor: cardBg }]}
+          onPress={handleGetCurrentLocation}
+        >
+          <Ionicons name="locate" size={24} color={tint} />
+        </TouchableOpacity>
+
         {/* BOTTOM PANEL */}
-        <View style={[styles.footer, { backgroundColor: cardBg }]}>
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: cardBg,
+              paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+            },
+          ]}
+        >
           <View style={styles.addressBox}>
             <ThemedText
               type="defaultSemiBold"
@@ -230,6 +264,7 @@ export default function SetLocationCoverageModal({
 
           <ThemedButton
             title="Set Service Area"
+            loading={isPending}
             onPress={() =>
               onConfirm({
                 formattedAddress: address,
@@ -248,7 +283,7 @@ export default function SetLocationCoverageModal({
 const styles = StyleSheet.create({
   floatingSearchContainer: {
     position: "absolute",
-    top: 60,
+    top: 5,
     left: 20,
     right: 20,
     zIndex: 10,
@@ -292,10 +327,9 @@ const styles = StyleSheet.create({
   },
   pinInner: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#fff" },
   footer: {
-    padding: 24,
+    padding: 14,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 10,
@@ -312,4 +346,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   radiusBtnText: { fontWeight: "700", fontSize: 14 },
+
+  locateBtn: {
+    position: "absolute",
+    bottom: 300,
+    right: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+    zIndex: 10,
+  },
 });

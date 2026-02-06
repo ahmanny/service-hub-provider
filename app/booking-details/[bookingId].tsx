@@ -4,32 +4,18 @@ import { BackButton } from "@/components/ui/BackButton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useBookingDetails } from "@/hooks/useBooking";
-import * as Burnt from "burnt";
 import { Stack, useLocalSearchParams } from "expo-router";
-import React, { useEffect } from "react";
+import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function BookingPage() {
-  const { bookingId, newBooking } = useLocalSearchParams<{
+  const { bookingId } = useLocalSearchParams<{
     bookingId: string;
-    newBooking: string;
   }>();
 
   const { data, isLoading, error, refetch, isRefetching } = useBookingDetails({
     bookingId,
   });
-
-  useEffect(() => {
-    if (newBooking === "true") {
-      Burnt.toast({
-        title: "Success!",
-        preset: "done",
-        message: "Booking request sent",
-        haptic: "success",
-        duration: 3,
-      });
-    }
-  }, [newBooking]);
 
   const onRefresh = React.useCallback(() => {
     refetch();

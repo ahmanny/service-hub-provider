@@ -1,6 +1,5 @@
-// @/components/dashboard/UpcomingJobCard.tsx
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { formatBookingDate } from "@/lib/utils/date";
+import { formatBookingDate } from "@/lib/utils/date.utils";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";

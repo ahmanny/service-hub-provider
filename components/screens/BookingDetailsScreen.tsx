@@ -6,18 +6,21 @@ import { BookingDetails } from "@/types/booking.types";
 import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
-import { router, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import React, { useMemo } from "react";
 import {
   Dimensions,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AcceptButton, DeclineButton } from "../booking/BookingActions";
+import {
+  AcceptButton,
+  DeclineButton,
+  ServiceActionButton,
+} from "../booking/BookingActions";
 import { BookingStatusBadge } from "../booking/BookingStatusBadge";
 import { CustomerSection } from "../booking/CustomerSection";
 import { BackButton } from "../ui/BackButton";
@@ -45,13 +48,16 @@ export default function BookingDetailsScreen({
   const border = useThemeColor({}, "border");
   const card = useThemeColor({}, "card");
   const textSecondary = useThemeColor({}, "textSecondary");
+  const warning = useThemeColor({}, "warning");
 
   const isPending = booking.status === "pending";
   const isExpiredStatus = booking.status === "expired";
+  const isInProgress = booking.status === "in_progress";
+  const isCompleted = booking.status === "completed";
 
   const { timeLeft, isExpired } = useCountdown(booking.deadlineAt);
   const { timeLeft: timeUntilService, isExpired: isServiceTime } = useCountdown(
-    booking.scheduledAt
+    booking.scheduledAt,
   );
 
   // Timeline Construction
@@ -75,17 +81,19 @@ export default function BookingDetailsScreen({
           done: !!booking.cancelledAt,
         },
         {
-          label: "Service Started",
-          time: booking.scheduledAt,
-          done: booking.status === "in_progress",
+          label: booking.autoStarted
+            ? "Auto-Started by System"
+            : "Service Started",
+          time: booking.actualStartTime,
+          done: booking.actualStartTime,
         },
         {
           label: "Job Completed",
-          time: booking.updatedAt,
+          time: booking.completedAt,
           done: booking.status === "completed",
         },
       ].filter((e) => e.done || e.label === "Request Placed"),
-    [booking]
+    [booking],
   );
 
   return (
@@ -156,13 +164,33 @@ export default function BookingDetailsScreen({
                 {booking.status === "declined"
                   ? "Decline Reason"
                   : booking.status === "expired"
-                  ? "Expiry Info"
-                  : "Booking Note"}
+                    ? "Expiry Info"
+                    : "Booking Note"}
               </ThemedText>
               <ThemedText style={styles.messageText}>
                 {booking.declineReason ||
                   booking.expiredMessage ||
                   booking.note}
+              </ThemedText>
+            </View>
+          </View>
+        )}
+
+        {booking.autoStarted && isInProgress && (
+          <View
+            style={[
+              styles.messageCard,
+              { backgroundColor: `${warning}10`, borderColor: warning },
+            ]}
+          >
+            <Ionicons name="flash" size={20} color={warning} />
+            <View style={{ flex: 1 }}>
+              <ThemedText style={[styles.messageLabel, { color: warning }]}>
+                Notice
+              </ThemedText>
+              <ThemedText style={styles.messageText}>
+                Service was automatically started because the scheduled time
+                passed.
               </ThemedText>
             </View>
           </View>
@@ -280,7 +308,8 @@ export default function BookingDetailsScreen({
       <View
         style={[styles.footer, { backgroundColor, borderTopColor: border }]}
       >
-        {isPending ? (
+        {/*NEW REQUEST STATE: Show Accept/Decline */}
+        {booking.status === "pending" && (
           <View style={styles.footerContent}>
             <View style={styles.timerBar}>
               <Ionicons name="flash" size={14} color={danger} />
@@ -291,78 +320,52 @@ export default function BookingDetailsScreen({
             <View style={styles.actionGrid}>
               <DeclineButton
                 bookingId={booking._id}
-                onSuccess={() => {
-                  // Maybe show a toast then go back
-                  router.back();
-                }}
+                onSuccess={onRefresh}
                 style={[styles.btnSec, { borderColor: border }]}
               />
-
               <AcceptButton
                 bookingId={booking._id}
-                label="Accept Booking"
-                onSuccess={() => {
-                  // Stay on page to show 'Accepted' status or navigate
-                  console.log("Booking accepted!");
-                }}
+                label="Accept"
+                onSuccess={onRefresh}
                 style={[styles.btnPri, { backgroundColor: tint, flex: 2 }]}
               />
             </View>
           </View>
-        ) : (
-          !["declined", "cancelled", "expired"].includes(booking.status) && (
-            <View style={{ gap: 10 }}>
-              {/* If Accepted but NOT yet time to start */}
-              {booking.status === "accepted" && !isServiceTime && (
-                <View style={styles.timerBar}>
-                  <Ionicons name="time-outline" size={14} color={tint} />
-                  <ThemedText style={[styles.timerText, { color: tint }]}>
-                    STARTS IN {timeUntilService}
-                  </ThemedText>
-                </View>
-              )}
-
-              <Pressable
-                disabled={
-                  booking.status === "completed" ||
-                  (booking.status === "accepted" && !isServiceTime) // Disable if not time yet
-                }
-                onPress={() => {
-                  /* Handle Start/Complete Mutation */
-                }}
-                style={({ pressed }) => [
-                  styles.btnPri,
-                  {
-                    backgroundColor:
-                      booking.status === "completed"
-                        ? border
-                        : booking.status === "accepted" && !isServiceTime
-                        ? `${tint}50` // Faded tint if disabled
-                        : success,
-                    width: "100%",
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
-              >
-                <ThemedText style={styles.btnPriText}>
-                  {booking.status === "in_progress"
-                    ? "Complete Service"
-                    : booking.status === "completed"
-                    ? "Service Delivered"
-                    : isServiceTime
-                    ? "Start Service"
-                    : `Service Starts ${dayjs(booking.scheduledAt).format(
-                        "h:mm A"
-                      )}`}
-                </ThemedText>
-              </Pressable>
-            </View>
-          )
         )}
 
-        {(booking.status === "declined" || booking.status === "cancelled") && (
+        {/* ONGOING JOB STATE: Show Start/Complete/Delivered */}
+        {["accepted", "in_progress", "completed"].includes(booking.status) && (
+          <View style={{ gap: 10 }}>
+            {/* Show Countdown ONLY if it's accepted but not time to start yet */}
+            {booking.status === "accepted" && !isServiceTime && (
+              <View style={styles.timerBar}>
+                <Ionicons name="time-outline" size={14} color={tint} />
+                <ThemedText style={[styles.timerText, { color: tint }]}>
+                  STARTS IN {timeUntilService}
+                </ThemedText>
+              </View>
+            )}
+
+            <ServiceActionButton
+              bookingId={booking._id}
+              status={booking.status}
+              isServiceTime={isServiceTime}
+              scheduledAt={booking.scheduledAt}
+              onSuccess={onRefresh}
+            />
+          </View>
+        )}
+
+        {/* TERMINATED STATE: Show informative text */}
+        {["declined", "cancelled", "expired"].includes(booking.status) && (
           <View style={{ alignItems: "center", padding: 10 }}>
-            <ThemedText style={{ color: danger, fontWeight: "700" }}>
+            <ThemedText
+              style={{
+                color: danger,
+                fontWeight: "700",
+                textTransform: "uppercase",
+              }}
+            >
               This booking was {booking.status}
             </ThemedText>
           </View>

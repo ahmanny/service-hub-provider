@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addAddress, updateAddress, deleteAddress } from "@/services/consumer.service"; // Adjust path as needed
+import { addAddress, deleteAddress, updateAddress } from "@/services/profile.service"; // Adjust path as needed
 import { UserAddressPayload } from "@/types/address.types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useAddressActions() {
   const queryClient = useQueryClient();
@@ -39,11 +39,11 @@ export function useAddressActions() {
     isAdding: addMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
-    
+
     // Global loading state (optional utility)
-    isAnyAddressActionPending: 
-      addMutation.isPending || 
-      updateMutation.isPending || 
+    isAnyAddressActionPending:
+      addMutation.isPending ||
+      updateMutation.isPending ||
       deleteMutation.isPending,
   };
 }

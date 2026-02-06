@@ -48,6 +48,9 @@ type BookingBase = {
     deadlineAt: string
     createdAt: string;
     updatedAt?: string;
+    actualStartTime?: string
+    autoStarted?: boolean,
+    isDisputed?: boolean,
     _v?: number;
 };
 export type BookingDetails = BookingBase & {
@@ -76,6 +79,7 @@ export type BookingDetails = BookingBase & {
     declinedAt?: Date;
     acceptedAt?: Date;
     rescheduledAt?: Date;
+    completedAt?: Date
 }
 
 export type BookingListItem = BookingBase & {
@@ -101,6 +105,6 @@ export interface fetchBookingsParams {
 
 export type BookingActionPayload = {
     bookingId: string;
-    action: "accept" | "decline"
+    action: "accept" | "decline" | "start" | "complete"
     reason?: string;
 };

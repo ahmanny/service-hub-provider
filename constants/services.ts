@@ -32,7 +32,7 @@ export const SERVICE_META: Record<ServiceType, ServiceMeta> = {
     electrician: {
         label: "Electrician",
         description: "Wiring, lighting, power issues",
-        icon: "bolt",
+        icon: "bolt-lightning",
     },
     house_cleaning: {
         label: "House Cleaner",
@@ -42,7 +42,7 @@ export const SERVICE_META: Record<ServiceType, ServiceMeta> = {
     hair_stylist: {
         label: "Hair Stylist",
         description: "Styling, braids, treatments",
-        icon: "user",
+        icon: "wand-sparkles",
     },
     plumber: {
         label: "Plumber",

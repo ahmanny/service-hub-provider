@@ -1,9 +1,7 @@
 // app/(tabs)/profile/_layout.tsx
-import { ThemedText } from "@/components/ui/Themed";
 import { fontSize } from "@/constants/Layout";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { router, Stack } from "expo-router";
-import { TouchableOpacity } from "react-native";
+import { Stack } from "expo-router";
 
 export default function ProfileLayout() {
   const textColor = useThemeColor({}, "text");
@@ -26,11 +24,6 @@ export default function ProfileLayout() {
           headerShown: false,
           title: "Profile",
         }}
-      />
-      {/* Personal Info Hub */}
-      <Stack.Screen
-        name="personal-info"
-        options={{ headerShown: true, title: "Personal Info" }}
       />
     </Stack>
   );

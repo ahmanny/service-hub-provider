@@ -1,5 +1,9 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useBookingActions } from "@/hooks/useBooking";
+import { BookingStatus } from "@/types/booking.types";
+import { Ionicons } from "@expo/vector-icons";
+import dayjs from "dayjs";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -45,7 +49,7 @@ export const AcceptButton = ({
         onSuccess: () => {
           if (onSuccess) onSuccess();
         },
-      }
+      },
     );
   };
 
@@ -63,7 +67,9 @@ export const AcceptButton = ({
       {isPending ? (
         <ActivityIndicator color="#FFF" size="small" />
       ) : (
-        <ThemedText style={styles.btnPriText}>{label.toUpperCase()}</ThemedText>
+        <ThemedText style={[styles.btnPriText, { color: "#FFF" }]}>
+          {label.toUpperCase()}
+        </ThemedText>
       )}
     </Pressable>
   );
@@ -97,10 +103,10 @@ export const DeclineButton = ({
       {
         onSuccess: () => {
           setShowModal(false);
-          setReason(""); 
+          setReason("");
           if (onSuccess) onSuccess();
         },
-      }
+      },
     );
   };
 
@@ -176,6 +182,184 @@ export const DeclineButton = ({
   );
 };
 
+export const CompleteContinueBookingButton = ({
+  bookingId,
+  status,
+  scheduledAt,
+  isServiceTime,
+  onSuccess,
+  style,
+}: {
+  bookingId: string;
+  status: BookingStatus;
+  scheduledAt: string | Date;
+  isServiceTime: boolean;
+  onSuccess?: () => void;
+  style?: StyleProp<ViewStyle>;
+}) => {
+  const tint = useThemeColor({}, "tint");
+  const success = useThemeColor({}, "success");
+  const border = useThemeColor({}, "border");
+  const textSecondary = useThemeColor({}, "textSecondary"); 
+  const { mutate, isPending } = useBookingActions();
+
+  const isCompleted = status === "completed";
+  const isInProgress = status === "in_progress";
+  const isAccepted = status === "accepted";
+  const isEarly = isAccepted && !isServiceTime;
+
+  const handleAction = () => {
+    if (isCompleted) return;
+    if (isAccepted && !isServiceTime) {
+      router.push(`/booking-details/${bookingId}`);
+      return;
+    }
+
+    const action = isInProgress ? "complete" : "start";
+    mutate({ bookingId, action }, { onSuccess: () => onSuccess?.() });
+  };
+
+  const getLabel = () => {
+    if (isPending) return "PROCESSING...";
+    if (isInProgress) return "COMPLETE SERVICE";
+    if (isCompleted) return "SERVICE DELIVERED";
+    if (isServiceTime) return "START SERVICE";
+
+    const date = dayjs(scheduledAt);
+    const isToday = date.isSame(dayjs(), "day");
+    const formatStr = isToday ? "h:mm A" : "ddd, h:mm A";
+    return `SERVICE STARTS ${date.format(formatStr).toUpperCase()}`;
+  };
+
+  const bgColor = isCompleted
+    ? border
+    : isInProgress
+      ? success
+      : isEarly
+        ? border + "50"
+        : tint;
+
+  const textColorValue = isEarly ? textSecondary : "#FFF";
+
+  return (
+    <Pressable
+      onPress={handleAction}
+      disabled={isPending || isCompleted}
+      style={({ pressed }) => [
+        styles.btn,
+        {
+          backgroundColor: bgColor,
+          marginTop: 4,
+          opacity: pressed ? 0.8 : 1,
+          borderWidth: isEarly ? 1 : 0,
+          borderColor: border,
+        },
+        style,
+      ]}
+    >
+      {isPending ? (
+        <ActivityIndicator color={tint} size="small" />
+      ) : (
+        <View style={styles.content}>
+          {isInProgress && (
+            <Ionicons name="checkmark-circle" size={18} color="#FFF" />
+          )}
+          {isEarly && (
+            <Ionicons name="time-outline" size={18} color={textColorValue} />
+          )}
+          <ThemedText style={[styles.btnPriText, { color: textColorValue }]}>
+            {getLabel()}
+          </ThemedText>
+        </View>
+      )}
+    </Pressable>
+  );
+};
+export const ServiceActionButton = ({
+  bookingId,
+  status,
+  isServiceTime,
+  scheduledAt,
+  onSuccess,
+}: {
+  bookingId: string;
+  status: string;
+  isServiceTime: boolean;
+  scheduledAt: string | Date;
+  onSuccess?: () => void;
+}) => {
+  const tint = useThemeColor({}, "tint");
+  const success = useThemeColor({}, "success");
+  const border = useThemeColor({}, "border");
+
+  const { mutate, isPending } = useBookingActions();
+
+  const isCompleted = status === "completed";
+  const isInProgress = status === "in_progress";
+  const isAccepted = status === "accepted";
+
+  const handlePress = () => {
+    const action = isInProgress ? "complete" : "start";
+    mutate(
+      { bookingId, action },
+      {
+        onSuccess: () => {
+          if (onSuccess) onSuccess();
+        },
+      },
+    );
+  };
+
+  const isDisabled = isCompleted || (isAccepted && !isServiceTime) || isPending;
+
+  const getLabel = () => {
+    if (isInProgress) return "COMPLETE SERVICE";
+    if (isCompleted) return "SERVICE DELIVERED";
+    if (isServiceTime) return "START SERVICE";
+
+    // Format logic for future dates
+    const date = dayjs(scheduledAt);
+    const isToday = date.isSame(dayjs(), "day");
+
+    // If today: Starts 4:00 PM, If tomorrow/later: Starts Mon, 4:00 PM
+    const formatStr = isToday ? "h:mm A" : "ddd, h:mm A";
+    return `SERVICE STARTS ${date.format(formatStr).toUpperCase()}`;
+  };
+
+  return (
+    <Pressable
+      disabled={isDisabled}
+      onPress={handlePress}
+      style={({ pressed }) => [
+        styles.btnPri,
+        {
+          backgroundColor: isCompleted ? border : isInProgress ? success : tint,
+          width: "100%",
+          opacity:
+            (isAccepted && !isServiceTime) || isPending
+              ? 0.6
+              : pressed
+                ? 0.8
+                : 1,
+        },
+      ]}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        {isPending ? (
+          <ActivityIndicator color="#FFF" size="small" />
+        ) : (
+          <>
+            {isInProgress && (
+              <Ionicons name="checkmark-circle" size={18} color="#FFF" />
+            )}
+            <ThemedText style={styles.btnPriText}>{getLabel()}</ThemedText>
+          </>
+        )}
+      </View>
+    </Pressable>
+  );
+};
+
 const styles = StyleSheet.create({
   btn: {
     flex: 1,
@@ -183,6 +367,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
+  },
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   declineBtn: { borderWidth: 1 },
   declineBtnText: { fontWeight: "800", fontSize: 13 },
@@ -217,9 +406,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 
-  btnPriText: { color: "#FFF", fontWeight: "800", fontSize: 13 },
+  btnPri: {
+    height: 60,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  btnPriText: { fontSize: 14, fontWeight: "700", letterSpacing: 0.5 },
 });
-
-// const styles = StyleSheet.create({
-
-// });

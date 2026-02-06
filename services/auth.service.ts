@@ -11,7 +11,6 @@ export const resendotp = async (payload: { phone: string }) => {
     return data
 };
 export const verifyotp = async (payload: { phone: string, otp: string }) => {
-    console.log(payload)
     const { data } = await API.post("/auth/provider/verify-otp", payload);
     return data
 };

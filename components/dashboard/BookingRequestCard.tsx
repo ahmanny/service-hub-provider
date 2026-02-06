@@ -1,7 +1,7 @@
 // @/components/dashboard/BookingRequestCard.tsx
 import { useCountdown } from "@/hooks/use-countdown";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { formatBookingDate } from "@/lib/utils/date";
+import { formatBookingDate } from "@/lib/utils/date.utils";
 import { BookingRequest } from "@/types/dashboard";
 import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";

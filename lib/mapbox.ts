@@ -6,6 +6,20 @@ export type MapboxFeature = {
   geometry: {
     coordinates: [number, number]; // [lng, lat]
   };
+  context?: Array<{ id: string; text: string }>;
+};
+
+export interface GeocodeResult {
+  formattedAddress: string;
+  city: string;
+  state: string;
+}
+
+/**
+ * Helper to extract specific levels from Mapbox context
+ */
+const extractFromContext = (context: any[], type: string) => {
+  return context?.find((item) => item.id.startsWith(type))?.text || "";
 };
 
 export async function searchAddress(query: string): Promise<MapboxFeature[]> {
@@ -17,18 +31,26 @@ export async function searchAddress(query: string): Promise<MapboxFeature[]> {
 
   const res = await fetch(url);
   const data = await res.json();
-
   return data.features ?? [];
 }
 
 export async function reverseGeocode(
   latitude: number,
   longitude: number
-): Promise<string> {
+): Promise<GeocodeResult> {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_TOKEN}`;
 
   const res = await fetch(url);
   const data = await res.json();
+  const mainFeature = data.features?.[0];
 
-  return data.features?.[0]?.place_name ?? "";
+  if (!mainFeature) {
+    return { formattedAddress: "", city: "", state: "" };
+  }
+
+  return {
+    formattedAddress: mainFeature.place_name,
+    city: extractFromContext(mainFeature.context, "place"),
+    state: extractFromContext(mainFeature.context, "region"),
+  };
 }

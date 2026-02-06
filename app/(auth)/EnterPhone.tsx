@@ -4,7 +4,6 @@ import { spacing } from "@/constants/Layout";
 import { useSendOtp } from "@/hooks/auth/useAuths";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { ApiError } from "@/types/api.error.types";
-import { useHeaderHeight } from "@react-navigation/elements";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -30,7 +29,7 @@ export default function EnterPhone() {
   const bg = useThemeColor({}, "background");
 
   const [selectedCountry, setSelectedCountry] = useState<ICountry | undefined>(
-    undefined
+    undefined,
   );
   const [localInputValue, setLocalInputValue] = useState("");
 
@@ -67,7 +66,7 @@ export default function EnterPhone() {
 
       if (code === 113) {
         router.push(
-          `/(auth)/VerifyOTP?phone=${encodeURIComponent(phoneNumber)}`
+          `/(auth)/VerifyOTP?phone=${encodeURIComponent(phoneNumber)}`,
         );
         return;
       }
@@ -78,7 +77,7 @@ export default function EnterPhone() {
   };
 
   return (
-    <>
+    <ThemedView style={{ flex: 1, backgroundColor: bg }}>
       <StatusBar style="auto" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -123,7 +122,7 @@ export default function EnterPhone() {
           </ThemedView>
         </ScrollView>
       </KeyboardAvoidingView>
-    </>
+    </ThemedView>
   );
 }
 

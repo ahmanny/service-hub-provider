@@ -4,12 +4,11 @@ import { useEffect } from "react";
 
 export function GlobalProfileSync() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const hasProfile = useAuthStore((s) => s.hasProfile);
   const user = useAuthStore((s) => s.user);
   const login = useAuthStore((s) => s.login);
 
   // Background fetch only if logged in
-  const { data } = useProfile(isAuthenticated && hasProfile, user);
+  const { data } = useProfile(isAuthenticated, user);
 
   useEffect(() => {
     if (data?.profile) {
@@ -34,9 +33,9 @@ export function GlobalProfileSync() {
             serverTime > localTime
               ? "Newer Timestamp"
               : hasStatusChanged
-              ? "Status Change"
-              : "Data Mismatch"
-          }`
+                ? "Status Change"
+                : "Data Mismatch"
+          }`,
         );
 
         login(serverProfile, data.hasProfile);

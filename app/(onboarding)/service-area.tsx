@@ -35,11 +35,11 @@ export default function ServiceArea() {
         setIsInitializing(true);
         try {
           const [lng, lat] = userLocation;
-          const addr = await reverseGeocode(lat, lng);
+          const result = await reverseGeocode(lat, lng);
 
           updateFields({
             serviceArea: {
-              formattedAddress: addr || "Current Location",
+              formattedAddress: result.formattedAddress || "Current Location",
               center: { latitude: lat, longitude: lng },
             },
             radiusKm: radiusKm || 5, // Default to 5km if not set

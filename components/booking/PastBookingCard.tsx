@@ -4,7 +4,7 @@ import { formatNumber } from "@/lib/utils";
 import { getBookingStatusConfig } from "@/lib/utils/booking.utils";
 import { BookingListItem } from "@/types/booking.types";
 import { Ionicons } from "@expo/vector-icons";
-import { formatDate } from "date-fns";
+import { format } from "date-fns";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import React from "react";
@@ -48,41 +48,42 @@ export function PastBookingCard({ item, onPress }: PastBookingCardProps) {
         },
       ]}
     >
+      {/* HEADER SECTION */}
       <View style={styles.header}>
-        <ThemedText style={[styles.serviceName, { opacity: 0.8 }]}>
-          {item.serviceName}
-        </ThemedText>
-        <ThemedText style={[styles.price, { color: textSecondary }]}>
+        <View style={{ flex: 1 }}>
+          <ThemedText style={styles.serviceName}>{item.serviceName}</ThemedText>
+          {/* Subtle creation date under service name */}
+          <ThemedText style={[styles.createdDate, { color: textSecondary }]}>
+            {format(new Date(item.createdAt), "d MMM, H:mm")}
+          </ThemedText>
+        </View>
+        <ThemedText style={styles.price}>
           ₦{formatNumber(item.price)}
         </ThemedText>
       </View>
 
-      <View style={styles.infoRow}>
-        <Ionicons
-          name={
-            item.status === "completed"
-              ? "checkmark-done-circle"
-              : "close-circle-outline"
-          }
-          size={14}
-          color={statusConfig.color}
-        />
-        <ThemedText style={[styles.infoText, { color: textSecondary }]}>
-          {item.status === "completed" ? "Completed on" : "Ended on"}{" "}
-          {formatDate(
-            new Date(item.updatedAt || item.scheduledAt),
-            "dd MMM, yyyy"
-          )}
-        </ThemedText>
+      {/* BODY SECTION */}
+      <View style={styles.detailsContainer}>
+        <View style={styles.infoRow}>
+          <Ionicons
+            name={
+              item.status === "completed"
+                ? "checkmark-done-circle"
+                : "close-circle-outline"
+            }
+            size={16}
+            color={statusConfig.color}
+          />
+          <ThemedText style={[styles.infoText, { color: textSecondary }]}>
+            {item.status === "completed" ? "Completed on " : "Ended on "}
+            {format(new Date(item.updatedAt || item.scheduledAt), "EEE do MMM")}
+          </ThemedText>
+        </View>
       </View>
 
-      <View
-        style={[
-          styles.divider,
-          { backgroundColor: border, marginVertical: 12 },
-        ]}
-      />
+      <View style={[styles.divider, { backgroundColor: border }]} />
 
+      {/* FOOTER SECTION */}
       <View style={styles.footer}>
         <View style={styles.consumerInfo}>
           <AppAvatar
@@ -132,15 +133,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
+    alignItems: "flex-start",
+    marginBottom: 14,
   },
-  serviceName: { fontSize: 17, fontWeight: "800" },
+  serviceName: { fontSize: 16, fontWeight: "800", lineHeight: 20 },
+  createdDate: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
+    opacity: 0.6,
+  },
   price: { fontSize: 17, fontWeight: "800" },
-  detailsContainer: { gap: 6, marginBottom: 12 },
+  detailsContainer: {
+    marginBottom: 4,
+  },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  infoText: { fontSize: 13, fontWeight: "600" },
-  divider: { height: 1, width: "100%", marginVertical: 12 },
+  infoText: { fontSize: 14, fontWeight: "600" },
+  divider: { height: 1, width: "100%", marginVertical: 14 },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",

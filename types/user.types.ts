@@ -4,6 +4,16 @@ import { IAvailabilityDay } from "./provider.types";
 
 export type ProfileStatus = 'pending' | 'approved' | 'rejected';
 
+export interface IPayoutDetails {
+    bankCode: string;
+    bankName: string;
+    bankSlug: string;
+    accountNumber: string;
+    accountName: string;
+    verifiedAt?: Date;
+}
+
+
 /**
  * Base Provider Profile interface
  */
@@ -18,7 +28,6 @@ export interface ProviderProfile {
     };
     firstName: string;
     lastName: string;
-    email: string;
     profilePicture?: string;
     bio?: string;
 
@@ -51,6 +60,8 @@ export interface ProviderProfile {
     avgServiceTime: number;
     shopAddress?: ProviderShopAddress;
     availability: IAvailabilityDay[];
+
+    payoutDetails?: IPayoutDetails;
 
     // Timestamps (from Mongoose)
     createdAt?: string;

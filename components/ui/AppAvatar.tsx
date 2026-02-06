@@ -10,13 +10,13 @@ import {
 import { Avatar } from "react-native-paper";
 
 interface AppAvatarProps {
-  source?: ImageSourcePropType | null; // Supports both {uri} and require()
+  source?: ImageSourcePropType | null; 
   initials?: string;
   size?: number;
   onEdit?: () => void;
   tint?: string;
   shape?: "square" | "rounded";
-  style?: any; // To accept custom styles like shadows
+  style?: any; 
 }
 
 export const AppAvatar = ({

@@ -89,6 +89,7 @@ export default function Summary() {
       console.log("FormData:", formData);
       await mutateAsync(formData);
     } catch (err: any) {
+      console.log(err);
       const errorMessage =
         err.response?.data?.message || err.message || "Failed to Submit";
       console.error("Submission Error:", errorMessage);

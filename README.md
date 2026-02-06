@@ -28,3 +28,9 @@ An ambitious, high-performance mobile application for service professionals. Thi
 ```bash
 # Install dependencies
 npm install
+
+
+
+
+## TODO today
+- complete profile tabs menu item actions down to updating services

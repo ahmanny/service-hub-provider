@@ -2,7 +2,8 @@ import { ThemedText } from "@/components/ui/Themed";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useUpdateName } from "@/hooks/useProfile";
 import { useAuthStore } from "@/stores/auth.store";
-import { Stack, router } from "expo-router";
+import * as Haptics from "expo-haptics";
+import { Stack, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -10,13 +11,13 @@ import {
   StyleSheet,
   ToastAndroid,
   TouchableOpacity,
-  Vibration,
   View,
 } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 import ThemedInput from "../ui/Themed/ThemedInput";
 
 export default function EditNameScreen() {
+  const router = useRouter();
   const profile = useAuthStore((s) => s.user);
   const { mutateAsync, isPending } = useUpdateName();
 
@@ -25,8 +26,8 @@ export default function EditNameScreen() {
 
   const tint = useThemeColor({}, "tint");
   const bg = useThemeColor({}, "background");
+  const border = useThemeColor({}, "border");
 
-  // Check if any data has actually changed
   const hasChanges =
     firstName.trim() !== profile?.firstName ||
     lastName.trim() !== profile?.lastName;
@@ -36,14 +37,14 @@ export default function EditNameScreen() {
 
     try {
       await mutateAsync({ firstName, lastName });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (err: any) {
-      console.log(err);
-      Vibration.vibrate(50);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       if (Platform.OS === "android") {
         ToastAndroid.show(
           err.message || "Failed to Update",
-          ToastAndroid.SHORT
+          ToastAndroid.SHORT,
         );
       } else {
         Alert.alert("Error", err.message || "Failed to Update");
@@ -55,48 +56,56 @@ export default function EditNameScreen() {
     <View style={[styles.container, { backgroundColor: bg }]}>
       <Stack.Screen
         options={{
-          title: "Update your name",
-          headerRight: () =>
-            // Only show the button if there is a change
-            hasChanges ? (
-              <TouchableOpacity onPress={handleSave} disabled={isPending}>
-                {isPending ? (
-                  <ActivityIndicator size="small" color="#FF3B30" />
-                ) : (
-                  <ThemedText
-                    style={{ color: tint, fontWeight: "700", fontSize: 20 }}
-                  >
-                    {isPending ? "Saving..." : "Save"}
+          title: "Update Name",
+          headerRight: () => (
+            <View style={{ marginRight: 8 }}>
+              {isPending ? (
+                <ActivityIndicator size="small" color={tint} />
+              ) : (
+                <TouchableOpacity
+                  onPress={handleSave}
+                  disabled={!hasChanges}
+                  style={{ opacity: hasChanges ? 1 : 0.3 }}
+                >
+                  <ThemedText style={[styles.saveText, { color: tint }]}>
+                    Save
                   </ThemedText>
-                )}
-              </TouchableOpacity>
-            ) : null,
+                </TouchableOpacity>
+              )}
+            </View>
+          ),
         }}
       />
 
       <View style={styles.content}>
-        <ThemedText style={styles.instruction}>
-          Please ensure your name exactly match the names on your official ID
-          documents (e.g., Driver's License or Passport).
-        </ThemedText>
-
-        <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>First Name</ThemedText>
-          <ThemedInput
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholder="Enter first name"
-            autoFocus
-          />
+        <View style={styles.infoBox}>
+          <ThemedText style={styles.instruction}>
+            Ensure your name matches your official ID documents (e.g., Driver's
+            License). This is required for identity verification.
+          </ThemedText>
         </View>
 
-        <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>Last Name</ThemedText>
-          <ThemedInput
-            value={lastName}
-            onChangeText={setLastName}
-            placeholder="Enter last name"
-          />
+        <View style={styles.form}>
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>First Name</ThemedText>
+            <ThemedInput
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="e.g. Solomon"
+              autoFocus
+            />
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: border }]} />
+
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Last Name</ThemedText>
+            <ThemedInput
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="e.g. Ahmanny"
+            />
+          </View>
         </View>
       </View>
     </View>
@@ -105,26 +114,41 @@ export default function EditNameScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20 },
+  content: { paddingHorizontal: 20, paddingTop: 10 },
+  infoBox: {
+    backgroundColor: "rgba(0,0,0,0.03)",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 32,
+  },
   instruction: {
-    fontSize: 14,
+    fontSize: 13,
     opacity: 0.6,
-    marginBottom: 30,
-    lineHeight: 20,
+    lineHeight: 18,
+  },
+  form: {
+    backgroundColor: "transparent",
   },
   inputGroup: {
-    marginBottom: 8,
+    marginBottom: 12,
   },
   label: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
     textTransform: "uppercase",
-    opacity: 0.5,
-    marginBottom: 8,
+    opacity: 0.4,
+    letterSpacing: 1,
+    marginBottom: 4,
+    marginLeft: 4,
   },
-  input: {
-    fontSize: 18,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
+  saveText: {
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  divider: {
+    height: 1,
+    width: "100%",
+    marginVertical: 3,
+    opacity: 0.5,
   },
 });

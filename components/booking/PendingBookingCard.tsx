@@ -1,33 +1,24 @@
 import { ThemedText } from "@/components/ui/Themed";
+import { useCountdown } from "@/hooks/use-countdown";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { formatNumber } from "@/lib/utils";
 import { BookingListItem } from "@/types/booking.types";
 import { Ionicons } from "@expo/vector-icons";
-import { formatDate } from "date-fns";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { AppAvatar } from "../ui/AppAvatar";
 import { AcceptButton, DeclineButton } from "./BookingActions";
-import { useCountdown } from "@/hooks/use-countdown";
 
 dayjs.extend(duration);
 
 interface PendingBookingCardProps {
   item: BookingListItem;
-  onAccept: (id: string) => void;
-  onDecline: (id: string) => void;
   onPress?: () => void;
 }
 
-export function PendingBookingCard({
-  item,
-  onAccept,
-  onDecline,
-  onPress,
-}: PendingBookingCardProps) {
-
+export function PendingBookingCard({ item, onPress }: PendingBookingCardProps) {
   // Theme Hooks
   const cardBg = useThemeColor({}, "card");
   const border = useThemeColor({}, "border");
@@ -53,7 +44,13 @@ export function PendingBookingCard({
     >
       {/* Header: Service & Earnings */}
       <View style={styles.header}>
-        <ThemedText style={styles.serviceName}>{item.serviceName}</ThemedText>
+        <View style={{ flex: 1 }}>
+          <ThemedText style={styles.serviceName}>{item.serviceName}</ThemedText>
+          {/* PREMIUM ADDITION: Subtle requested time */}
+          <ThemedText style={[styles.createdDate, { color: textSecondary }]}>
+            {dayjs(item.createdAt).format("D MMM, H:mm")}
+          </ThemedText>
+        </View>
         <ThemedText style={[styles.price, { color: success }]}>
           ₦{formatNumber(item.price)}
         </ThemedText>
@@ -64,14 +61,17 @@ export function PendingBookingCard({
         <View style={styles.infoRow}>
           <Ionicons name="calendar-clear" size={14} color={tint} />
           <ThemedText style={[styles.infoText, { color: textSecondary }]}>
-            {formatDate(new Date(item.scheduledAt), "EEE, dd MMM • p")}
+            {dayjs(item.scheduledAt).format("ddd, DD MMM • h:mm A")}
           </ThemedText>
         </View>
 
         <View style={styles.infoRow}>
           <Ionicons name="location" size={14} color={tint} />
-          <ThemedText style={[styles.infoText, { color: textSecondary }]}>
-            {item.locationLabel} • {item.distance ?? "0"} km away
+          <ThemedText
+            style={[styles.infoText, { color: textSecondary }]}
+            numberOfLines={1}
+          >
+            {item.locationLabel}
           </ThemedText>
         </View>
       </View>
@@ -142,12 +142,31 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
+    alignItems: "flex-start",
+    marginBottom: 12,
   },
-  serviceName: { fontSize: 17, fontWeight: "800" },
-  price: { fontSize: 17, fontWeight: "800" },
-  detailsContainer: { gap: 6, marginBottom: 12 },
+  serviceName: {
+    fontSize: 16,
+    fontWeight: "800",
+    lineHeight: 20,
+  },
+  createdDate: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
+    opacity: 0.6,
+  },
+  price: {
+    fontSize: 17,
+    fontWeight: "800",
+    lineHeight: 20,
+  },
+  detailsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 20,
+    marginBottom: 12,
+  },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   infoText: { fontSize: 13, fontWeight: "600" },
   divider: { height: 1, width: "100%", marginVertical: 12 },

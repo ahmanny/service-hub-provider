@@ -220,41 +220,47 @@ export default function Home() {
               )}
 
               {/*  Stats */}
-              <ThemedText style={[styles.sectionTitle, { marginBottom: 10 }]}>
-                Today's Overview
-              </ThemedText>
-              <View style={styles.statsGrid}>
-                <View
-                  style={[
-                    styles.statCard,
-                    { backgroundColor: cardBg, borderColor: border },
-                  ]}
-                >
+              {isApproved && (
+                <>
                   <ThemedText
-                    style={[styles.statLabel, { color: textSecondary }]}
+                    style={[styles.sectionTitle, { marginBottom: 10 }]}
                   >
-                    Earnings
+                    Today's Overview
                   </ThemedText>
-                  <ThemedText style={[styles.statValue, { color: tint }]}>
-                    ₦{dashboardData.todayStats.earnings.toLocaleString()}
-                  </ThemedText>
-                </View>
-                <View
-                  style={[
-                    styles.statCard,
-                    { backgroundColor: cardBg, borderColor: border },
-                  ]}
-                >
-                  <ThemedText
-                    style={[styles.statLabel, { color: textSecondary }]}
-                  >
-                    Jobs
-                  </ThemedText>
-                  <ThemedText style={styles.statValue}>
-                    {dashboardData.todayStats.completedJobs} completed
-                  </ThemedText>
-                </View>
-              </View>
+                  <View style={styles.statsGrid}>
+                    <View
+                      style={[
+                        styles.statCard,
+                        { backgroundColor: cardBg, borderColor: border },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[styles.statLabel, { color: textSecondary }]}
+                      >
+                        Earnings
+                      </ThemedText>
+                      <ThemedText style={[styles.statValue, { color: tint }]}>
+                        ₦{dashboardData.todayStats.earnings.toLocaleString()}
+                      </ThemedText>
+                    </View>
+                    <View
+                      style={[
+                        styles.statCard,
+                        { backgroundColor: cardBg, borderColor: border },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[styles.statLabel, { color: textSecondary }]}
+                      >
+                        Jobs
+                      </ThemedText>
+                      <ThemedText style={styles.statValue}>
+                        {dashboardData.todayStats.completedJobs} completed
+                      </ThemedText>
+                    </View>
+                  </View>
+                </>
+              )}
             </>
           )}
 
@@ -369,9 +375,7 @@ const BookingSection = ({
           ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
           renderItem={({ item }) => (
             <View style={{ width: 300 }}>
-              <BookingRequestCard
-                request={item}
-              />
+              <BookingRequestCard request={item} />
             </View>
           )}
           ListFooterComponent={

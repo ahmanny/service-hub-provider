@@ -34,3 +34,20 @@ export const MOCK_BOOKING_DATA: BookingDetails = {
 };
 
 
+
+export const mockEarningsData = {
+    totalMonthly: 124500,
+    growth: 12.5,
+    jobsCompleted: 48,
+    avgPerJob: 2593,
+    availableBalance: 32000,
+    pendingBalance: 8500,
+    nextPayout: "Today • 6:00 PM",
+    chartData: [2500, 4000, 3500, 5000, 4800, 6000, 5500],
+    transactions: [
+        { id: '1', title: 'Haircut', client: 'Solomon A.', net: 2250, fee: 250, date: '12 Mar', status: 'Completed' },
+        { id: '2', title: 'Beard Trim', client: 'Daniel O.', net: 1350, fee: 150, date: '11 Mar', status: 'Completed' },
+        { id: '3', title: 'Premium Grooming', client: 'Ahmanny S.', net: 3600, fee: 400, date: '10 Mar', status: 'Completed' },
+    ]
+};
+

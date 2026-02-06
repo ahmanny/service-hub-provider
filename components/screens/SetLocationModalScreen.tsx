@@ -1,6 +1,7 @@
 import { ThemedButton, ThemedText } from "@/components/ui/Themed";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { reverseGeocode, searchAddress } from "@/lib/mapbox";
+import { GeocodeResult, reverseGeocode, searchAddress } from "@/lib/mapbox";
+import { useAuthStore } from "@/stores/auth.store";
 import { Ionicons } from "@expo/vector-icons";
 import Mapbox from "@rnmapbox/maps";
 import { debounce } from "lodash";
@@ -16,6 +17,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MapPin } from "../ui/MapPin";
 
 interface SetLocationProps {
   isEdit?: boolean;
@@ -26,6 +29,8 @@ interface SetLocationProps {
   onConfirm: (data: {
     label: string;
     formattedAddress: string;
+    city?: string;
+    state?: string;
     latitude: number;
     longitude: number;
   }) => void;
@@ -39,21 +44,38 @@ export default function SetLocationModalScreen({
   initialLng,
   onConfirm,
 }: SetLocationProps) {
+  const userLocation = useAuthStore((s) => s.userLocation);
   const tint = useThemeColor({}, "tint");
+  const insets = useSafeAreaInsets();
+  const cardBg = useThemeColor({}, "card");
+  const textColor = useThemeColor({}, "text");
+  const placeholderTextColor = useThemeColor({}, "placeholder");
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [lat, setLat] = useState(initialLat);
   const [lng, setLng] = useState(initialLng);
-  const [address, setAddress] = useState("");
+
+  const [cameraPos, setCameraPos] = useState<[number, number]>([
+    initialLng,
+    initialLat,
+  ]);
+  const [isDragging, setIsDragging] = useState(false);
+
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [locationDetails, setLocationDetails] = useState<GeocodeResult>({
+    formattedAddress: "",
+    city: "",
+    state: "",
+  });
 
   // Sync Address with Coordinates
   useEffect(() => {
     const updateAddress = async () => {
       setIsGeocoding(true);
       try {
-        const addr = await reverseGeocode(lat, lng);
-        setAddress(addr);
+        const result = await reverseGeocode(lat, lng);
+        setLocationDetails(result);
       } finally {
         setIsGeocoding(false);
       }
@@ -68,7 +90,7 @@ export default function SetLocationModalScreen({
       const places = await searchAddress(text);
       setResults(places);
     }, 500),
-    []
+    [],
   );
 
   const handleSearch = (text: string) => {
@@ -80,8 +102,19 @@ export default function SetLocationModalScreen({
     const [newLng, newLat] = place.center;
     setLat(newLat);
     setLng(newLng);
+    setCameraPos([newLng, newLat]);
     setQuery(place.place_name);
     setResults([]);
+  };
+
+  const handleGetCurrentLocation = async () => {
+    if (!userLocation) {
+      return;
+    }
+
+    setLat(userLocation[1]);
+    setLng(userLocation[0]);
+    setCameraPos([userLocation[0], userLocation[1]]);
   };
 
   return (
@@ -93,25 +126,31 @@ export default function SetLocationModalScreen({
         <View style={{ flex: 1 }}>
           {/* FLOATING SEARCH BAR */}
           <View style={styles.floatingSearchContainer}>
-            <View style={styles.searchBar}>
-              <Ionicons name="search" size={20} color="#999" />
+            <View style={[styles.searchBar, { backgroundColor: cardBg }]}>
+              <Ionicons name="search" size={20} color={placeholderTextColor} />
               <TextInput
                 placeholder="Search for your street..."
                 value={query}
                 onChangeText={handleSearch}
-                style={styles.input}
-                placeholderTextColor="#999"
+                style={[styles.input, { color: textColor }]}
+                placeholderTextColor={placeholderTextColor}
               />
               {query.length > 0 && (
                 <TouchableOpacity onPress={() => setQuery("")}>
-                  <Ionicons name="close-circle" size={18} color="#999" />
+                  <Ionicons
+                    name="close-circle"
+                    size={18}
+                    color={placeholderTextColor}
+                  />
                 </TouchableOpacity>
               )}
             </View>
 
             {/* RESULTS DROPDOWN */}
             {results.length > 0 && (
-              <View style={styles.resultsDropdown}>
+              <View
+                style={[styles.resultsDropdown, { backgroundColor: cardBg }]}
+              >
                 <FlatList
                   data={results}
                   keyExtractor={(item) => item.id}
@@ -146,7 +185,7 @@ export default function SetLocationModalScreen({
             }}
           >
             <Mapbox.Camera
-              centerCoordinate={[lng, lat]}
+              centerCoordinate={cameraPos}
               zoomLevel={15}
               animationDuration={1000}
             />
@@ -155,22 +194,35 @@ export default function SetLocationModalScreen({
               id="pin"
               coordinate={[lng, lat]}
               draggable
+              onDragStart={() => setIsDragging(true)}
               onDragEnd={(e) => {
                 const [newLng, newLat] = e.geometry.coordinates;
                 setLat(newLat);
                 setLng(newLng);
+                setIsDragging(false);
               }}
             >
-              <View style={styles.pinShadow}>
-                <View style={[styles.pinCircle, { backgroundColor: tint }]}>
-                  <View style={styles.pinInner} />
-                </View>
-              </View>
+              <MapPin tint={tint} isDragging={isDragging} />
             </Mapbox.PointAnnotation>
           </Mapbox.MapView>
 
+          <TouchableOpacity
+            style={[styles.locateBtn, { backgroundColor: cardBg }]}
+            onPress={handleGetCurrentLocation}
+          >
+            <Ionicons name="locate" size={24} color={tint} />
+          </TouchableOpacity>
+
           {/* BOTTOM SHEET INFO */}
-          <View style={styles.footer}>
+          <View
+            style={[
+              styles.footer,
+              {
+                backgroundColor: cardBg,
+                paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+              },
+            ]}
+          >
             <View style={styles.addressContainer}>
               <Ionicons
                 name="map-outline"
@@ -181,9 +233,13 @@ export default function SetLocationModalScreen({
               <View style={{ flex: 1, marginLeft: 10 }}>
                 <ThemedText
                   type="defaultSemiBold"
-                  style={{ fontSize: 13, color: tint }}
+                  style={{
+                    fontSize: 13,
+                    color: tint,
+                    textTransform: "uppercase",
+                  }}
                 >
-                  CONFIRM HOME LOCATION
+                  CONFIRM {label} LOCATION
                 </ThemedText>
                 {isGeocoding ? (
                   <ActivityIndicator
@@ -193,7 +249,7 @@ export default function SetLocationModalScreen({
                   />
                 ) : (
                   <ThemedText numberOfLines={2} style={styles.addressText}>
-                    {address || "Locating..."}
+                    {locationDetails.formattedAddress || "Locating..."}
                   </ThemedText>
                 )}
               </View>
@@ -205,8 +261,10 @@ export default function SetLocationModalScreen({
               disabled={isPending}
               onPress={() =>
                 onConfirm({
-                  label: "Home",
-                  formattedAddress: address,
+                  label: label || "Location",
+                  formattedAddress: locationDetails.formattedAddress,
+                  city: locationDetails.city,
+                  state: locationDetails.state,
                   latitude: lat,
                   longitude: lng,
                 })
@@ -220,10 +278,9 @@ export default function SetLocationModalScreen({
 }
 
 const styles = StyleSheet.create({
-  // 1. FLOATING SEARCH SECTION
   floatingSearchContainer: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 60 : 20, // Adjust for status bar
+    top: 5,
     left: 20,
     right: 20,
     zIndex: 10,
@@ -231,37 +288,26 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
     borderRadius: 15,
     paddingHorizontal: 15,
     height: 54,
-    // Shadow for iOS
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    // Elevation for Android
     elevation: 5,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
     marginLeft: 10,
-    height: "100%",
   },
 
-  // 2. SEARCH RESULTS DROPDOWN
   resultsDropdown: {
-    backgroundColor: "#FFFFFF",
     marginTop: 8,
-    borderRadius: 15,
-    maxHeight: 250,
+    borderRadius: 16,
+    maxHeight: 200,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
     elevation: 5,
   },
   resultItem: {
@@ -274,48 +320,13 @@ const styles = StyleSheet.create({
   resultText: {
     marginLeft: 12,
     fontSize: 15,
-    color: "#444",
   },
 
-  // 3. MAP PIN UI
-  pinShadow: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  pinCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    // Shadow to make pin pop
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  pinInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#FFFFFF",
-  },
-
-  // 4. FOOTER PANEL
   footer: {
-    backgroundColor: "#FFFFFF",
-    padding: 24,
-    paddingBottom: Platform.OS === "ios" ? 40 : 24, // Safe area for home indicator
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
+    padding: 14,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 10,
   },
@@ -328,19 +339,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     marginTop: 4,
-    color: "#333",
   },
-  confirmBtn: {
-    height: 56,
-    borderRadius: 16,
+
+  locateBtn: {
+    position: "absolute",
+    bottom: 180,
+    right: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-    width: "100%",
-  },
-  confirmText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.5,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+    zIndex: 10,
   },
 });

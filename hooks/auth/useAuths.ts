@@ -41,7 +41,6 @@ export const useVerifyOtp = () => {
                 refreshToken: refresh_token,
             });
             setAuthenticated(user, hasProfile);
-            console.log(data)
         },
     });
 };

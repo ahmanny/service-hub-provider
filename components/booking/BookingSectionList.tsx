@@ -38,6 +38,7 @@ export function BookingSectionList({
   const success = useThemeColor({}, "success");
   const textSecondary = useThemeColor({}, "textSecondary");
   const danger = useThemeColor({}, "danger");
+  const warning = useThemeColor({}, "warning");
 
   // Configuration for Empty States
   const emptyConfig = {
@@ -45,7 +46,7 @@ export function BookingSectionList({
       title: "All Caught Up!",
       sub: "You don't have any new booking requests right now. Make sure your status is set to 'Available' to receive new jobs.",
       icon: "sparkles-outline" as const,
-      color: tint,
+      color: warning,
     },
     upcoming: {
       title: "Your Schedule is Clear",
@@ -126,8 +127,6 @@ export function BookingSectionList({
       return (
         <PendingBookingCard
           item={item}
-          onAccept={(id) => console.log("Accepting", id)}
-          onDecline={(id) => console.log("Declining", id)}
           onPress={() => router.push(`/booking-details/${item._id}`)}
         />
       );

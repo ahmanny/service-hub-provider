@@ -1,8 +1,8 @@
-import { spacing } from "@/constants/Layout";
 import { useSendOtp } from "@/hooks/auth/useAuths";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthStore } from "@/stores/auth.store";
 import { ApiError } from "@/types/api.error.types";
+import * as Haptics from "expo-haptics";
 import { router, Stack } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -13,25 +13,25 @@ import {
   StyleSheet,
   ToastAndroid,
   TouchableWithoutFeedback,
-  Vibration,
   View,
 } from "react-native";
 import {
   ICountry,
   isValidPhoneNumber,
 } from "react-native-international-phone-number";
-import ModernPhoneInput from "../ui/PhoneInput"; // Path to your component
-import { ThemedButton, ThemedText } from "../ui/Themed";
+import ModernPhoneInput from "../ui/PhoneInput";
+import { ThemedButton, ThemedText, ThemedView } from "../ui/Themed";
 
 export default function EditPhoneScreen() {
   const { mutateAsync, isPending } = useSendOtp();
   const bg = useThemeColor({}, "background");
+  const tint = useThemeColor({}, "tint");
   const profile = useAuthStore((s) => s.user);
   const originalPhone = profile?.userId?.phone ?? "";
 
   const [loading, setLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<ICountry | undefined>(
-    undefined
+    undefined,
   );
   const [localInputValue, setLocalInputValue] = useState("");
 
@@ -43,98 +43,96 @@ export default function EditPhoneScreen() {
 
   const hasChanged =
     currentFullNumber !== originalPhone && cleanNumber.length > 0;
+  const isPhoneValid = selectedCountry
+    ? isValidPhoneNumber(localInputValue, selectedCountry)
+    : false;
+  const canContinue = hasChanged && isPhoneValid && !loading;
 
   const handleContinue = async () => {
-    if (!selectedCountry || !hasChanged) return;
+    if (!canContinue) return;
 
     setLoading(true);
-    try {
-      console.log(`Sending SMS to: ${currentFullNumber}`);
-      const res = await mutateAsync({
-        phone: currentFullNumber,
-      });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      Vibration.vibrate(50);
+    try {
+      const res = await mutateAsync({ phone: currentFullNumber });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       if (Platform.OS === "android") {
         ToastAndroid.show(res.message, ToastAndroid.SHORT);
-      } else {
-        Alert.alert("Success", res.message);
       }
 
       router.push({
-        pathname: "/(tabs)/profile/verify-otp",
+        pathname: "/(profile-edit)/personal-info/verify-otp",
         params: { phone: currentFullNumber },
       });
     } catch (error) {
       const err = error as ApiError;
       const code = err.response?.data?.code ?? err.code;
-      console.log(err);
       const message =
         err.response?.data?.message ?? err.message ?? "Failed to send code";
 
       if (code === 113) {
-        // OTP already sent still continue
         router.push({
-          pathname: "/(tabs)/profile/verify-otp",
+          pathname: "/(profile-edit)/personal-info/verify-otp",
           params: { phone: currentFullNumber },
         });
         return;
       }
 
-      Vibration.vibrate(50);
-      if (Platform.OS === "android") {
-        ToastAndroid.show(message, ToastAndroid.LONG);
-      } else {
-        Alert.alert("Error", message);
-      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Platform.OS === "ios"
+        ? Alert.alert("Error", message)
+        : ToastAndroid.show(message, ToastAndroid.LONG);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[styles.container, { backgroundColor: bg }]}
-      keyboardVerticalOffset={100}
-    >
-      <Stack.Screen options={{ title: "Update your phone" }} />
+    <ThemedView style={{ flex: 1, backgroundColor: bg }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={[styles.container, { backgroundColor: bg }]}
+        keyboardVerticalOffset={80}
+      >
+        <Stack.Screen options={{ title: "Update Phone" }} />
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.inner}>
-          <View style={styles.topContent}>
-            <ThemedText type="subtitle" style={styles.subtitle}>
-              We’ll send you a verification code via SMS.
-            </ThemedText>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.inner}>
+            <View style={styles.topContent}>
+              <ThemedText style={styles.description}>
+                We’ll send a secure code to verify your new phone number.
+              </ThemedText>
 
-            <ModernPhoneInput
-              defaultphone={profile?.userId?.phone ?? ""}
-              localInputValue={localInputValue}
-              selectedCountry={selectedCountry}
-              setLocalInputValue={setLocalInputValue}
-              setSelectedCountry={setSelectedCountry}
-            />
-          </View>
+              <View style={styles.inputSection}>
+                <ThemedText style={styles.label}>Phone Number</ThemedText>
+                <ModernPhoneInput
+                  defaultphone={profile?.userId?.phone ?? ""}
+                  localInputValue={localInputValue}
+                  selectedCountry={selectedCountry}
+                  setLocalInputValue={setLocalInputValue}
+                  setSelectedCountry={setSelectedCountry}
+                />
+              </View>
+            </View>
 
-          {hasChanged && (
             <View style={styles.buttonContainer}>
               <ThemedButton
-                title="Continue"
-                loading={loading}
+                title="Send Code"
+                loading={loading || isPending}
                 onPress={handleContinue}
-                disabled={
-                  loading ||
-                  !selectedCountry ||
-                  !isValidPhoneNumber(localInputValue, selectedCountry)
-                }
-                style={styles.button}
+                disabled={!canContinue}
+                style={[
+                  styles.button,
+                  !canContinue && { opacity: 0.5, backgroundColor: "#ccc" }, // Or use a theme color for disabled
+                ]}
               />
             </View>
-          )}
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </ThemedView>
   );
 }
 
@@ -142,18 +140,39 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   inner: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 40,
     justifyContent: "space-between",
   },
   topContent: {
-    marginTop: spacing.md,
+    flex: 1,
   },
-  subtitle: {
+  description: {
+    fontSize: 14,
     opacity: 0.6,
-    marginBottom: spacing.lg,
+    lineHeight: 22,
+    marginBottom: 32,
   },
-  buttonContainer: {},
-  button: {
+  inputSection: {
     width: "100%",
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    opacity: 0.4,
+    letterSpacing: 1.2,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+  buttonContainer: {
+    marginTop: 20,
+  },
+  button: {
+    borderRadius: 16,
+    height: 56,
+    elevation: 0,
+    shadowOpacity: 0,
   },
 });

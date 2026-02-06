@@ -1,15 +1,16 @@
 import { ThemedText } from "@/components/ui/Themed";
+import { useCountdown } from "@/hooks/use-countdown";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { formatNumber } from "@/lib/utils";
 import { getBookingStatusConfig } from "@/lib/utils/booking.utils";
 import { BookingListItem } from "@/types/booking.types";
 import { Ionicons } from "@expo/vector-icons";
-import { formatDate } from "date-fns";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { AppAvatar } from "../ui/AppAvatar";
+import { CompleteContinueBookingButton } from "./BookingActions";
 
 dayjs.extend(duration);
 
@@ -32,6 +33,8 @@ export function UpcomingBookingCard({
   const danger = useThemeColor({}, "danger");
   const warning = useThemeColor({}, "warning");
 
+  const { isExpired: isServiceTime } = useCountdown(item.scheduledAt);
+
   const statusConfig = getBookingStatusConfig(item.status, {
     tint,
     success,
@@ -42,6 +45,13 @@ export function UpcomingBookingCard({
   });
 
   const isInProgress = item.status === "in_progress";
+
+  const getElapsed = () => {
+    if (!item.actualStartTime) return null;
+    const diff = dayjs().diff(dayjs(item.actualStartTime), "minute");
+    if (diff < 60) return `${diff}m elapsed`;
+    return `${Math.floor(diff / 60)}h ${diff % 60}m elapsed`;
+  };
 
   return (
     <Pressable
@@ -55,23 +65,58 @@ export function UpcomingBookingCard({
         },
       ]}
     >
+      {/* HEADER SECTION */}
       <View style={styles.header}>
-        <ThemedText style={styles.serviceName}>{item.serviceName}</ThemedText>
+        <View style={{ flex: 1 }}>
+          <ThemedText style={styles.serviceName}>{item.serviceName}</ThemedText>
+
+          <View style={styles.headerSubRow}>
+            {/* NEW: Created At Timestamp */}
+            <ThemedText style={[styles.createdDate, { color: textSecondary }]}>
+              {dayjs(item.createdAt).format("D MMM, H:mm")}
+            </ThemedText>
+
+            {/* LIVE Status Indicator */}
+            {isInProgress && (
+              <>
+                <ThemedText
+                  style={[
+                    styles.createdDate,
+                    { color: textSecondary, marginHorizontal: 4 },
+                  ]}
+                >
+                  •
+                </ThemedText>
+                <View style={styles.liveContainer}>
+                  <View style={[styles.dot, { backgroundColor: success }]} />
+                  <ThemedText style={[styles.liveText, { color: success }]}>
+                    LIVE: {getElapsed()}
+                  </ThemedText>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
         <ThemedText style={[styles.price, { color: success }]}>
           ₦{formatNumber(item.price)}
         </ThemedText>
       </View>
 
+      {/* LOGISTICS SECTION */}
       <View style={styles.detailsContainer}>
         <View style={styles.infoRow}>
           <Ionicons name="calendar" size={14} color={tint} />
           <ThemedText style={[styles.infoText, { color: textSecondary }]}>
-            {formatDate(new Date(item.scheduledAt), "EEE, dd MMM • p")}
+            {dayjs(item.scheduledAt).format("ddd, DD MMM • h:mm A")}
           </ThemedText>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="location" size={14} color={tint} />
-          <ThemedText style={[styles.infoText, { color: textSecondary }]}>
+          <ThemedText
+            style={[styles.infoText, { color: textSecondary }]}
+            numberOfLines={1}
+          >
             {item.locationLabel}
           </ThemedText>
         </View>
@@ -79,6 +124,7 @@ export function UpcomingBookingCard({
 
       <View style={[styles.divider, { backgroundColor: border }]} />
 
+      {/* FOOTER SECTION */}
       <View style={styles.footer}>
         <View style={styles.consumerInfo}>
           <AppAvatar
@@ -96,35 +142,39 @@ export function UpcomingBookingCard({
           </ThemedText>
         </View>
 
-        {/* Dynamic Badge based on status utility */}
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: `${statusConfig.color}15` },
-          ]}
-        >
-          <ThemedText
-            style={[styles.statusText, { color: statusConfig.color }]}
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {item.autoStarted && (
+            <View
+              style={[styles.statusBadge, { backgroundColor: `${warning}15` }]}
+            >
+              <ThemedText style={[styles.statusText, { color: warning }]}>
+                AUTO-STARTED
+              </ThemedText>
+            </View>
+          )}
+
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: `${statusConfig.color}15` },
+            ]}
           >
-            {statusConfig.label}
-          </ThemedText>
+            <ThemedText
+              style={[styles.statusText, { color: statusConfig.color }]}
+            >
+              {statusConfig.label}
+            </ThemedText>
+          </View>
         </View>
       </View>
 
-      <Pressable
-        onPress={() => onStart(item._id)}
-        style={[
-          styles.btn,
-          {
-            backgroundColor: isInProgress ? tint : success,
-            marginTop: 4,
-          },
-        ]}
-      >
-        <ThemedText style={styles.acceptBtnText}>
-          {isInProgress ? "Continue Service" : "Start Service"}
-        </ThemedText>
-      </Pressable>
+      <CompleteContinueBookingButton
+        bookingId={item._id}
+        status={item.status}
+        isServiceTime={isServiceTime}
+        scheduledAt={item.scheduledAt}
+        onSuccess={() => console.log("Action performed successfully")}
+      />
     </Pressable>
   );
 }
@@ -144,12 +194,45 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
+    alignItems: "flex-start",
+    marginBottom: 12,
   },
-  serviceName: { fontSize: 17, fontWeight: "800" },
+  headerSubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  serviceName: {
+    fontSize: 16,
+    fontWeight: "800",
+    lineHeight: 20,
+  },
+  createdDate: {
+    fontSize: 12,
+    fontWeight: "500",
+    opacity: 0.6,
+  },
+  liveContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  liveText: {
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
   price: { fontSize: 17, fontWeight: "800" },
-  detailsContainer: { gap: 6, marginBottom: 12 },
+  detailsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 20,
+    marginBottom: 12,
+  },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   infoText: { fontSize: 13, fontWeight: "600" },
   divider: { height: 1, width: "100%", marginVertical: 12 },
