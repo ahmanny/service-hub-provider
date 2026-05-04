@@ -11,4 +11,4 @@ jobs:
     type: update
     params:
       channel: preview
-      environment: preview
+      platform: all
