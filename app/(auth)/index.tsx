@@ -52,19 +52,6 @@ export default function Welcome() {
               style={styles.mainButton}
             />
 
-            <View style={styles.dividerContainer}>
-              <View style={styles.line} />
-              <ThemedText style={styles.dividerText}>or</ThemedText>
-              <View style={styles.line} />
-            </View>
-
-            <ThemedButton
-              title="Continue with Google"
-              onPress={() => Haptics.selectionAsync()}
-              variant="secondary"
-              style={styles.secondaryButton}
-            />
-
             <Text style={styles.termsText}>
               By signing up, you agree to our{" "}
               <Text style={styles.link}>Terms</Text> and{" "}
@@ -130,27 +117,6 @@ function createStyles() {
       height: 56,
       borderRadius: 16,
       backgroundColor: "#006D5B",
-    },
-    secondaryButton: {
-      height: 56,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: "#E5E5E5",
-    },
-    dividerContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginVertical: spacing.sm,
-    },
-    line: {
-      flex: 1,
-      height: 1,
-      backgroundColor: "#F0F0F0",
-    },
-    dividerText: {
-      marginHorizontal: spacing.md,
-      color: "#999",
-      fontSize: 14,
     },
     termsText: {
       fontSize: 12,
