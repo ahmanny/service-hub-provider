@@ -3,7 +3,8 @@ import React from "react";
 
 Mapbox.setAccessToken(
   process.env.EXPO_PUBLIC_MAPBOX_KEY ||
-    "pk.eyJ1IjoiYWhtYW5ueSIsImEiOiJjbWplcjZlaDcwZ2VrM2RzbWdleGlhNmNzIn0.82jeiD0j7aR-Y5nj1T0ByA"
+    process.env.EXPO_PUBLIC_MAPBOX_TOKEN ||
+    ""
 );
 
 export default function Map() {

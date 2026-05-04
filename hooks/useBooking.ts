@@ -47,8 +47,10 @@ export const useBookingActions = () => {
             console.log(`Booking ${variables.action} successful`);
 
             // Invalidate relevant queries to refresh the UI
-            queryClient.invalidateQueries({ queryKey: ["fetch-bookings"] });
+            queryClient.invalidateQueries({ queryKey: ["bookings"] });
             queryClient.invalidateQueries({ queryKey: ["booking-details", variables.bookingId] });
+            queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+            queryClient.invalidateQueries({ queryKey: ["earnings"] });
 
         },
         onError: (error: any) => {

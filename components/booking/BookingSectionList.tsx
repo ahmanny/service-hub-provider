@@ -137,7 +137,6 @@ export function BookingSectionList({
       return (
         <UpcomingBookingCard
           item={item}
-          onStart={(id) => console.log("Starting/Continuing", id)}
           onPress={() => router.push(`/booking-details/${item._id}`)}
         />
       );

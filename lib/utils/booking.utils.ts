@@ -18,56 +18,75 @@ export const getBookingStatusConfig = (
     textSecondary?: string;
   }
 ): BookingStatusConfig => {
-  const s = status.toLowerCase();
+  const s = status as BookingStatus;
 
   switch (s) {
-    case "pending":
+    case BookingStatus.PENDING:
       return {
         color: theme.warning || "#F59E0B",
-        label: "Pending",
-        slug: "pending"
+        label: "New Request",
+        slug: "pending",
       };
-    case "accepted":
+    case BookingStatus.ACCEPTED:
       return {
         color: theme.tint,
-        label: "Accepted",
+        label: "Upcoming",
         slug: "accepted"
       };
-    case "in_progress":
+    case BookingStatus.IN_PROGRESS:
       return {
-        color: theme.tint,
-        label: "In Progress",
+        color: "#8B5CF6",
+        label: "Active Job",
         slug: "in_progress"
       };
-    case "completed":
+    case BookingStatus.COMPLETION_PENDING:
+      return {
+        color: theme.warning || "#F59E0B",
+        label: "Awaiting Client",
+        slug: "completion_pending",
+      };
+    case BookingStatus.COMPLETED:
       return {
         color: theme.success,
-        label: "Completed",
+        label: "Earned",
         slug: "completed"
       };
-    case "declined":
+    case BookingStatus.DISPUTED:
       return {
         color: theme.danger,
-        label: "Declined",
-        slug: "declined"
+        label: "Under Dispute",
+        slug: "disputed"
       };
-    case "cancelled":
+    case BookingStatus.CANCELLED:
+    case BookingStatus.DECLINED:
       return {
         color: theme.danger,
-        label: "Cancelled",
-        slug: "cancelled"
+        label: s.charAt(0).toUpperCase() + s.slice(1),
+        slug: s,
       };
-    case "expired":
+    case BookingStatus.CANCELLED_REFUNDED:
+      return {
+        color: theme.success, 
+        label: "Refunded",
+        slug: "cancelled_refunded",
+      };
+    case BookingStatus.EXPIRED:
       return {
         color: theme.textSecondary || "#6B7280",
         label: "Expired",
-        slug: "expired"
+        slug: "expired",
       };
     default:
+      const fallbackLabel = status
+        .toString()
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/\b\w/g, (l) => l.toUpperCase());
+
       return {
         color: theme.border,
-        label: status.charAt(0).toUpperCase() + status.slice(1),
-        slug: s
+        label: fallbackLabel,
+        slug: status.toString(),
       };
   }
 };

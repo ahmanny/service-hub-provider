@@ -1,4 +1,4 @@
-import { BookingDetails } from "@/types/booking.types";
+import { BookingDetails, BookingStatus, PaymentStatus, PayoutStatus } from "@/types/booking.types";
 
 
 
@@ -7,7 +7,14 @@ export const MOCK_BOOKING_DATA: BookingDetails = {
     _id: "695a88a8eded7569b5363d26",
     serviceName: "Basic Haircut",
     serviceType: "barber",
-    status: "pending",
+    status: BookingStatus.PENDING,
+    paymentStatus: PaymentStatus.PENDING,
+    payoutStatus: PayoutStatus.PENDING,
+    canDispute: false,
+    canComplete: false,
+    isDisputed: false,
+    autoStarted: false,
+    isRated: false,
     scheduledAt: "2026-03-12T09:30:00.000Z",
     deadlineAt: "2026-01-20T09:10:00Z",
     createdAt: "2026-01-05T10:00:00.000Z",
@@ -29,6 +36,7 @@ export const MOCK_BOOKING_DATA: BookingDetails = {
     price: {
         service: 3500,
         homeServiceFee: 2000,
+        platformFee: 0,
         total: 5500
     }
 };

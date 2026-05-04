@@ -1,5 +1,4 @@
 import { ServiceType } from "@/constants/services";
-import { IAvailabilityDay } from "./provider.types";
 
 
 export type ProfileStatus = 'pending' | 'approved' | 'rejected';
@@ -13,6 +12,11 @@ export interface IPayoutDetails {
     verifiedAt?: Date;
 }
 
+export interface IAvailabilityDay {
+    dayOfWeek: number; // 0 (Sun) to 6 (Sat)
+    slots: { start: string; end: string }[]; // "09:00" to "17:00"
+    isClosed: boolean;
+}
 
 /**
  * Base Provider Profile interface
@@ -48,6 +52,11 @@ export interface ProviderProfile {
     };
 
     rating: number;
+    reviewCount: number;
+    weightedRating: number;
+    totalStars: number;
+
+
     status: ProfileStatus
 
     rejectionReason?: string

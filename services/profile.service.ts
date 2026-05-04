@@ -1,8 +1,7 @@
 import API from "@/lib/axios";
 import { SelectedService } from "@/stores/onboarding.store";
 import { UserAddressPayload } from "@/types/address.types";
-import { IAvailabilityDay } from "@/types/provider.types";
-import { IPayoutDetails } from "@/types/user.types";
+import { IAvailabilityDay, IPayoutDetails } from "@/types/user.types";
 
 export const completeProfile = async (payload: FormData) => {
     const { data } = await API.patch("/provider/complete-profile", payload, {

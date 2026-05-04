@@ -185,7 +185,8 @@ export const useEarnings = () => {
     return useQuery({
         queryKey: ["earnings"],
         queryFn: fetchEarningsDashboard,
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 0,
+        refetchOnMount: "always",
         refetchOnWindowFocus: true,
     });
 };

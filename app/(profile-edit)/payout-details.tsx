@@ -1,9 +1,9 @@
 import { BankPickerModal } from "@/components/BankPickerModal";
 import { ThemedButton, ThemedText } from "@/components/ui/Themed";
 import { BankLogos } from "@/constants/BankLogos";
-import { BankInterface, NIGERIAN_BANKS } from "@/data/banks";
+import { NIGERIAN_BANKS, BankInterface } from "@/data/banks";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { useResolveBank, useUpdatePayoutDetails } from "@/hooks/useProfile"; // Using your existing hooks
+import { useResolveBank, useUpdatePayoutDetails } from "@/hooks/useProfile";
 import { useAuthStore } from "@/stores/auth.store";
 import { ApiError } from "@/types/api.error.types";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,30 +28,35 @@ import {
 export default function PayoutDetailsScreen() {
   const profile = useAuthStore((s) => s.user);
 
+  // View/Edit State Logic
+  const hasExistingDetails = !!profile?.payoutDetails?.accountNumber;
+  const [isEditing, setIsEditing] = useState(!hasExistingDetails);
+
+  // Form State
   const [selectedBank, setSelectedBank] = useState<BankInterface | null>(null);
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
   const [isVerified, setIsVerified] = useState(false);
 
   const bankPickerRef = useRef<BottomSheetModal>(null);
+
+  // Theme
   const tint = useThemeColor({}, "tint");
   const cardBg = useThemeColor({}, "card");
   const border = useThemeColor({}, "border");
   const textColor = useThemeColor({}, "text");
   const textMuted = "#999";
 
-  // Mutations from your useProfile hooks
   const { mutateAsync: savePayout, isPending: saving } =
     useUpdatePayoutDetails();
   const { mutate: resolveAccount, isPending: isVerifying } = useResolveBank();
 
-  // Initial load: Sync state with profile
+  // Load existing data
   useEffect(() => {
     if (profile?.payoutDetails) {
       const savedBank = NIGERIAN_BANKS.find(
         (b) => b.code === profile.payoutDetails?.bankCode,
       );
-
       if (savedBank) setSelectedBank(savedBank);
       setAccountNumber(profile.payoutDetails.accountNumber || "");
       setAccountName(profile.payoutDetails.accountName || "");
@@ -59,8 +64,10 @@ export default function PayoutDetailsScreen() {
     }
   }, [profile]);
 
-  // Auto-resolve when 10 digits + Bank are present
+  // Auto-resolve (Only runs when editing)
   useEffect(() => {
+    if (!isEditing) return;
+
     const isNewInput =
       accountNumber !== profile?.payoutDetails?.accountNumber ||
       selectedBank?.code !== profile?.payoutDetails?.bankCode;
@@ -71,35 +78,28 @@ export default function PayoutDetailsScreen() {
       setAccountName("");
       setIsVerified(false);
     }
-  }, [accountNumber, selectedBank]);
+  }, [accountNumber, selectedBank, isEditing]);
 
   const handleVerify = () => {
     if (!selectedBank) return;
-
     resolveAccount(
       { accountNumber, bankCode: selectedBank.code },
       {
         onSuccess: (data) => {
           const resolvedName = data?.accountName || data?.account_name;
-
           if (resolvedName) {
             setAccountName(resolvedName);
             setIsVerified(true);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          } else {
-            setIsVerified(false);
-            Alert.alert(
-              "Error",
-              "Could not find an account name for this number.",
-            );
           }
         },
         onError: (err: ApiError) => {
           setIsVerified(false);
           setAccountName("");
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          const errorMsg = err?.message || "Invalid account details";
-          Alert.alert("Verification Failed", errorMsg);
+          Alert.alert(
+            "Verification Failed",
+            err?.message || "Invalid account details",
+          );
         },
       },
     );
@@ -107,32 +107,19 @@ export default function PayoutDetailsScreen() {
 
   const onSavePayout = async () => {
     if (!selectedBank || !isVerified || !accountName) return;
-
     await savePayout(
       {
         bankCode: selectedBank.code,
         bankName: selectedBank.name,
         bankSlug: selectedBank.slug,
-        accountNumber: accountNumber,
-        accountName: accountName,
+        accountNumber,
+        accountName,
       },
       {
-        onSuccess: (data) => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-          if (Platform.OS === "android") {
-            ToastAndroid.show(
-              "Payout details updated successfully",
-              ToastAndroid.SHORT,
-            );
-          }
-          router.back();
-        },
-        onError: (err: ApiError) => {
-          console.log(err);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          const errorMsg = err?.message || "Something went wrong";
-          Alert.alert("Update Failed", errorMsg);
+        onSuccess: () => {
+          setIsEditing(false);
+          if (Platform.OS === "android")
+            ToastAndroid.show("Updated successfully", ToastAndroid.SHORT);
         },
       },
     );
@@ -140,126 +127,165 @@ export default function PayoutDetailsScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        <ThemedText style={styles.description}>
-          Your earnings will be securely sent to this verified account.
-        </ThemedText>
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Header Toggle */}
+        <View style={styles.headerRow}>
+          <ThemedText style={styles.description}>
+            {isEditing
+              ? "Enter your new payout destination."
+              : "Your verified payout account."}
+          </ThemedText>
+          {hasExistingDetails && (
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setIsEditing(!isEditing);
+              }}
+              style={[
+                styles.editBtn,
+                { borderColor: isEditing ? tint : border },
+              ]}
+            >
+              <ThemedText
+                style={{
+                  color: isEditing ? tint : textColor,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {isEditing ? "CANCEL" : "EDIT"}
+              </ThemedText>
+            </Pressable>
+          )}
+        </View>
 
-        <View style={styles.form}>
-          {/* Bank Selection */}
-          <ThemedText style={styles.label}>Bank Name</ThemedText>
-          <Pressable
+        {!isEditing ? (
+          /* VIEW MODE: Secure Card Display */
+          <View
             style={[
-              styles.inputContainer,
+              styles.viewCard,
               { backgroundColor: cardBg, borderColor: border },
             ]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              bankPickerRef.current?.present();
-            }}
           >
-            <View style={styles.bankSelectionLeft}>
-              {selectedBank ? (
-                <View style={styles.logoContainer}>
-                  <Image
-                    source={
-                      BankLogos[selectedBank.slug] || BankLogos["default-image"]
-                    }
-                    style={styles.miniLogo}
-                    contentFit="contain"
-                  />
-                </View>
-              ) : (
-                <View
-                  style={[styles.logoPlaceholder, { backgroundColor: border }]}
-                >
-                  <Ionicons name="business" size={16} color={textMuted} />
-                </View>
-              )}
-              <ThemedText
-                style={[
-                  styles.inputText,
-                  { color: selectedBank ? textColor : textMuted },
-                ]}
-              >
-                {selectedBank?.name || "Select receiving bank"}
+            <View style={styles.cardHeader}>
+              <Image
+                source={
+                  BankLogos[selectedBank?.slug || ""] ||
+                  BankLogos["default-image"]
+                }
+                style={styles.cardBankLogo}
+                contentFit="contain"
+              />
+              <Ionicons name="shield-checkmark" size={20} color="#43A047" />
+            </View>
+            <ThemedText style={styles.viewAccountName}>
+              {accountName}
+            </ThemedText>
+            <ThemedText style={styles.viewAccountNumber}>
+              {selectedBank?.name} • ****{accountNumber.slice(-4)}
+            </ThemedText>
+            <View style={styles.verifiedBadge}>
+              <ThemedText style={styles.verifiedText}>
+                VERIFIED ACCOUNT
               </ThemedText>
             </View>
-            <Ionicons name="chevron-down" size={20} color={textMuted} />
-          </Pressable>
-
-          {/* Account Number */}
-          <ThemedText style={styles.label}>Account Number</ThemedText>
-          <View
-            style={[
-              styles.inputContainer,
-              { backgroundColor: cardBg, borderColor: border },
-            ]}
-          >
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              placeholder="0123456789"
-              keyboardType="number-pad"
-              maxLength={10}
-              value={accountNumber}
-              onChangeText={setAccountNumber}
-              placeholderTextColor={textMuted}
-            />
-            {isVerifying && <ActivityIndicator size="small" color={tint} />}
           </View>
-
-          {/* Account Name (Verification Status) */}
-          <ThemedText style={styles.label}>Account Name</ThemedText>
-          <View
-            style={[
-              styles.inputContainer,
-              styles.readOnly,
-              {
-                backgroundColor: cardBg,
-                borderColor: isVerified ? "#43A047" : border,
-                borderStyle: isVerified ? "solid" : "dashed",
-              },
-            ]}
-          >
-            <ThemedText
+        ) : (
+          /* EDIT MODE: Form Display */
+          <View style={styles.form}>
+            <ThemedText style={styles.label}>Bank Name</ThemedText>
+            <Pressable
               style={[
-                styles.inputText,
+                styles.inputContainer,
+                { backgroundColor: cardBg, borderColor: border },
+              ]}
+              onPress={() => bankPickerRef.current?.present()}
+            >
+              <View style={styles.bankSelectionLeft}>
+                <Image
+                  source={
+                    BankLogos[selectedBank?.slug || ""] ||
+                    BankLogos["default-image"]
+                  }
+                  style={styles.miniLogo}
+                  contentFit="contain"
+                />
+                <ThemedText
+                  style={[
+                    styles.inputText,
+                    { color: selectedBank ? textColor : textMuted },
+                  ]}
+                >
+                  {selectedBank?.name || "Select receiving bank"}
+                </ThemedText>
+              </View>
+              <Ionicons name="chevron-down" size={20} color={textMuted} />
+            </Pressable>
+
+            <ThemedText style={styles.label}>Account Number</ThemedText>
+            <View
+              style={[
+                styles.inputContainer,
+                { backgroundColor: cardBg, borderColor: border },
+              ]}
+            >
+              <TextInput
+                style={[styles.input, { color: textColor }]}
+                placeholder="0123456789"
+                keyboardType="number-pad"
+                maxLength={10}
+                value={accountNumber}
+                onChangeText={setAccountNumber}
+                placeholderTextColor={textMuted}
+              />
+              {isVerifying && <ActivityIndicator size="small" color={tint} />}
+            </View>
+
+            <ThemedText style={styles.label}>Account Name</ThemedText>
+            <View
+              style={[
+                styles.inputContainer,
+                styles.readOnly,
                 {
-                  color: isVerified ? textColor : textMuted,
-                  fontWeight: isVerified ? "700" : "500",
+                  backgroundColor: cardBg,
+                  borderColor: isVerified ? "#43A047" : border,
                 },
               ]}
             >
-              {isVerifying
-                ? "Verifying account..."
-                : accountName || "Account holder name"}
-            </ThemedText>
-            {isVerified && (
-              <Ionicons name="checkmark-circle" size={22} color="#43A047" />
-            )}
-          </View>
-        </View>
-
-        <View style={{ marginTop: 40 }}>
-          <ThemedButton
-            title="Save Payout Details"
-            disabled={!isVerified || isVerifying || saving}
-            loading={saving}
-            onPress={onSavePayout}
-          />
-
-          {profile?.payoutDetails?.verifiedAt && (
-            <ThemedText style={styles.lastUpdated}>
-              Last updated:{" "}
-              {dayjs(profile.payoutDetails.verifiedAt).format(
-                "MMM DD, YYYY [at] h:mm A",
+              <ThemedText
+                style={[
+                  styles.inputText,
+                  {
+                    color: isVerified ? textColor : textMuted,
+                    fontWeight: isVerified ? "700" : "500",
+                  },
+                ]}
+              >
+                {isVerifying
+                  ? "Verifying..."
+                  : accountName || "Account holder name"}
+              </ThemedText>
+              {isVerified && (
+                <Ionicons name="checkmark-circle" size={22} color="#43A047" />
               )}
-            </ThemedText>
-          )}
-        </View>
+            </View>
+
+            <ThemedButton
+              title="Save Changes"
+              disabled={!isVerified || isVerifying || saving}
+              loading={saving}
+              onPress={onSavePayout}
+              style={{ marginTop: 20 }}
+            />
+          </View>
+        )}
+
+        {profile?.payoutDetails?.verifiedAt && (
+          <ThemedText style={styles.lastUpdated}>
+            Securely verified on{" "}
+            {dayjs(profile.payoutDetails.verifiedAt).format("MMM DD, YYYY")}
+          </ThemedText>
+        )}
       </ScrollView>
 
       <BankPickerModal
@@ -273,7 +299,42 @@ export default function PayoutDetailsScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 20 },
-  description: { fontSize: 14, opacity: 0.6, marginBottom: 24, lineHeight: 20 },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 24,
+  },
+  description: { fontSize: 14, opacity: 0.6, flex: 1, marginRight: 10 },
+  editBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+
+  // View Card Styles
+  viewCard: { padding: 24, borderRadius: 24, borderWidth: 1, gap: 8 },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  cardBankLogo: { width: 40, height: 40 },
+  viewAccountName: { fontSize: 20, fontWeight: "900", letterSpacing: 0.5 },
+  viewAccountNumber: { fontSize: 15, opacity: 0.7, fontWeight: "600" },
+  verifiedBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#43A04715",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 10,
+  },
+  verifiedText: { color: "#43A047", fontSize: 10, fontWeight: "800" },
+
+  // Form Styles
   form: { gap: 16 },
   label: {
     fontSize: 13,
@@ -292,31 +353,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   bankSelectionLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  logoContainer: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#f0f0f0",
-  },
-  logoPlaceholder: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  miniLogo: { width: 22, height: 22 },
+  miniLogo: { width: 24, height: 24 },
   inputText: { fontSize: 16 },
   input: { flex: 1, fontSize: 16, fontWeight: "600" },
-  readOnly: { borderWidth: 1.5 },
+  readOnly: { borderStyle: "solid" },
   lastUpdated: {
     fontSize: 12,
     opacity: 0.5,
-    marginTop: 12,
+    marginTop: 24,
     textAlign: "center",
   },
 });

@@ -1,0 +1,14 @@
+name: Preview
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update:
+    name: Publish Preview
+    type: update
+    params:
+      channel: preview
+      environment: preview

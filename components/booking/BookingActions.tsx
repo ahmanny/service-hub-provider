@@ -200,46 +200,79 @@ export const CompleteContinueBookingButton = ({
   const tint = useThemeColor({}, "tint");
   const success = useThemeColor({}, "success");
   const border = useThemeColor({}, "border");
-  const textSecondary = useThemeColor({}, "textSecondary"); 
+  const textSecondary = useThemeColor({}, "textSecondary");
+  const warning = useThemeColor({}, "warning");
+
   const { mutate, isPending } = useBookingActions();
 
-  const isCompleted = status === "completed";
+  // Logic Helpers
   const isInProgress = status === "in_progress";
   const isAccepted = status === "accepted";
+  const isCompletionPending = status === "completion_pending";
+  const isCompleted = [
+    "completed",
+    "cancelled",
+    "declined",
+    "expired",
+  ].includes(status);
+
   const isEarly = isAccepted && !isServiceTime;
 
   const handleAction = () => {
-    if (isCompleted) return;
-    if (isAccepted && !isServiceTime) {
+    if (isPending || isCompleted) return;
+
+    // 1. If it's early or pending client confirmation, just view details
+    if (isEarly || isCompletionPending) {
       router.push(`/booking-details/${bookingId}`);
       return;
     }
 
+    // 2. Determine Mutation Action
     const action = isInProgress ? "complete" : "start";
+
     mutate({ bookingId, action }, { onSuccess: () => onSuccess?.() });
   };
 
   const getLabel = () => {
     if (isPending) return "PROCESSING...";
     if (isInProgress) return "COMPLETE SERVICE";
-    if (isCompleted) return "SERVICE DELIVERED";
+    if (isCompletionPending) return "AWAITING CONFIRMATION";
+    if (isCompleted) return "SERVICE FINISHED";
     if (isServiceTime) return "START SERVICE";
 
     const date = dayjs(scheduledAt);
     const isToday = date.isSame(dayjs(), "day");
-    const formatStr = isToday ? "h:mm A" : "ddd, h:mm A";
-    return `SERVICE STARTS ${date.format(formatStr).toUpperCase()}`;
+    return `STARTS ${date.format(isToday ? "h:mm A" : "ddd, h:mm A").toUpperCase()}`;
   };
 
-  const bgColor = isCompleted
-    ? border
-    : isInProgress
-      ? success
-      : isEarly
-        ? border + "50"
-        : tint;
+  const getStyles = () => {
+    if (isPending) return { bg: border, text: textSecondary, icon: null };
+    if (isInProgress)
+      return { bg: success, text: "#FFF", icon: "checkmark-circle" as const };
+    if (isCompletionPending)
+      return {
+        bg: `${warning}15`,
+        text: warning,
+        icon: "hourglass-outline" as const,
+      };
+    if (isCompleted)
+      return {
+        bg: border,
+        text: textSecondary,
+        icon: "cloud-done-outline" as const,
+      };
+    if (isServiceTime)
+      return { bg: tint, text: "#FFF", icon: "play-circle" as const };
 
-  const textColorValue = isEarly ? textSecondary : "#FFF";
+    // Default Early State
+    return {
+      bg: "transparent",
+      text: textSecondary,
+      icon: "time-outline" as const,
+    };
+  };
+
+  const config = getStyles();
 
   return (
     <Pressable
@@ -248,11 +281,10 @@ export const CompleteContinueBookingButton = ({
       style={({ pressed }) => [
         styles.btn,
         {
-          backgroundColor: bgColor,
-          marginTop: 4,
+          backgroundColor: config.bg,
+          borderColor: isEarly || isCompletionPending ? border : config.bg,
+          borderWidth: isEarly || isCompletionPending ? 1 : 0,
           opacity: pressed ? 0.8 : 1,
-          borderWidth: isEarly ? 1 : 0,
-          borderColor: border,
         },
         style,
       ]}
@@ -261,13 +293,10 @@ export const CompleteContinueBookingButton = ({
         <ActivityIndicator color={tint} size="small" />
       ) : (
         <View style={styles.content}>
-          {isInProgress && (
-            <Ionicons name="checkmark-circle" size={18} color="#FFF" />
+          {config.icon && (
+            <Ionicons name={config.icon} size={18} color={config.text} />
           )}
-          {isEarly && (
-            <Ionicons name="time-outline" size={18} color={textColorValue} />
-          )}
-          <ThemedText style={[styles.btnPriText, { color: textColorValue }]}>
+          <ThemedText style={[styles.btnText, { color: config.text }]}>
             {getLabel()}
           </ThemedText>
         </View>
@@ -275,6 +304,7 @@ export const CompleteContinueBookingButton = ({
     </Pressable>
   );
 };
+
 export const ServiceActionButton = ({
   bookingId,
   status,
@@ -352,7 +382,12 @@ export const ServiceActionButton = ({
             {isInProgress && (
               <Ionicons name="checkmark-circle" size={18} color="#FFF" />
             )}
-            <ThemedText style={styles.btnPriText}>{getLabel()}</ThemedText>
+            {isServiceTime && (
+              <Ionicons name="play-circle" size={18} color="#FFF" />
+            )}
+            <ThemedText style={[styles.btnPriText, { color: "#FFF" }]}>
+              {getLabel()}
+            </ThemedText>
           </>
         )}
       </View>
@@ -372,6 +407,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  btnText: {
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   declineBtn: { borderWidth: 1 },
   declineBtnText: { fontWeight: "800", fontSize: 13 },

@@ -27,7 +27,7 @@ export function PendingBookingCard({ item, onPress }: PendingBookingCardProps) {
   const success = useThemeColor({}, "success");
   const danger = useThemeColor({}, "danger");
 
-  const { timeLeft, isExpired } = useCountdown(item.deadlineAt);
+  const { timeLeft, isExpired } = useCountdown(item.deadlineAt!);
 
   return (
     <Pressable

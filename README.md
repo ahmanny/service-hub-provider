@@ -1,36 +1,90 @@
-# service-hub-provider 🚀
+# Proxxi Provider App
 
-An ambitious, high-performance mobile application for service professionals. This platform handles the end-to-end lifecycle of service bookings, from real-time requests to final payouts.
+This is the provider-facing mobile app for Service Hub / Proxxi. It helps service professionals complete onboarding, receive booking requests, manage their schedule, update their service profile, track jobs, and view earnings.
 
-## 🛠 Tech Stack
+## What It Does
 
-- **Frontend Framework:** React Native Expo (Managed Workflow)
-- **Navigation:** Expo Router (File-based routing)
-- **Backend:** Custom Node.js & Express.js RESTful API
-- **Database:** MongoDB with Mongoose ODM
-- **State Management:** Zustand
-- **Data Fetching:** TanStack Query (React Query) v5
-- **Authentication:** Custom JWT-based Auth via REST API
-- **Styling:** Native React Native `StyleSheet` (Custom Themed System)
-- **Payments:** Paystack
+- Phone OTP authentication for providers.
+- Multi-step provider onboarding for basic info, service category, services/pricing, service mode, availability, service area, shop address, and verification.
+- Provider profile management for personal info, bio, profile photo, delivery mode, service area, shop location, services/prices, availability, and payout details.
+- Home dashboard with booking requests, provider stats, availability/online state, quick actions, and upcoming schedule.
+- Booking tabs for pending, upcoming, and past jobs.
+- Booking details with customer information, process tracking, status alerts, financial breakdowns, ratings, and contextual actions.
+- Earnings dashboard with balances, charts, transactions, and withdrawal flow.
+- Bank picker and payout account support.
+- Location and map support through Expo Location and Mapbox.
+- Push notification token registration.
+- Offline/network state handling.
 
-## 🚀 Key Features
+## Tech Stack
 
-- **Real-time Request Management:** Time-sensitive booking requests with custom countdown logic.
-- **Service Lifecycle Tracking:** Comprehensive status updates from "Pending" to "Service Delivered."
-- **Dynamic Action Unlocking:** Context-aware buttons that enable based on scheduled service times (prevents starting jobs too early).
-- **Themed UI System:** Fully custom-built themed components (Modals, Inputs, Cards) for a consistent user experience.
-- **Financial Tracking:** Detailed breakdown of service earnings and final payouts.
+- Expo React Native
+- Expo Router
+- React 19
+- React Native 0.81
+- TypeScript
+- Zustand
+- TanStack Query
+- React Hook Form and Zod
+- Expo Secure Store
+- Expo Notifications
+- Expo Location
+- Mapbox React Native
+- React Native Paper
 
-## 🏁 Getting Started
+## Folder Structure
 
-### 1. Installation
+- `app`: Expo Router routes for auth, onboarding, tabs, profile editing, booking details, and modals.
+- `components`: Reusable UI, dashboard, booking, earnings, onboarding, profile, map, skeleton, and screen components.
+- `services`: API calls for auth, bookings, dashboard, and profile.
+- `hooks`: Query hooks and app behavior hooks.
+- `stores`: Zustand stores for auth, tokens, onboarding, network state, and map state.
+- `constants`: Shared constants and theme values.
+- `types`: Shared TypeScript types.
+- `assets`: App icons, splash images, fonts, and static assets.
+
+## Getting Started
+
+Install dependencies:
+
 ```bash
-# Install dependencies
 npm install
+```
 
+Start Expo:
 
+```bash
+npm start
+```
 
+Run on Android:
 
-## TODO today
-- complete profile tabs menu item actions down to updating services
+```bash
+npm run android
+```
+
+Run on iOS:
+
+```bash
+npm run ios
+```
+
+Run web preview:
+
+```bash
+npm run web
+```
+
+Lint:
+
+```bash
+npm run lint
+```
+
+## Build Notes
+
+The app is configured for EAS with Android and iOS targets. It uses the Expo project configured in `app.json`, including the app name `Proxxi Provider`, native identifiers, Mapbox, notifications, secure storage, and splash/icon assets.
+
+## API Dependency
+
+This app depends on the Service Hub backend for auth, onboarding, provider profile data, bookings, earnings, payout data, notifications, and booking lifecycle state.

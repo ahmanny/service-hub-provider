@@ -1,9 +1,11 @@
 import SplashScreen from "@/components/SplashScreen";
 import { useAuthStore } from "@/stores/auth.store";
 import * as Location from "expo-location";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated } from "react-native";
 
 const FALLBACK_LOCATION: [number, number] = [3.3792, 6.5244];
+const MIN_SPLASH_MS = 2500;
 
 export function AppInitializer({
   children,
@@ -13,11 +15,17 @@ export function AppInitializer({
   disabled?: boolean;
 }) {
   const [locationLoading, setLocationLoading] = useState(true);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [splashVisible, setSplashVisible] = useState(true);
+  const fadeOut = useRef(new Animated.Value(1)).current;
 
-  // Get hydration status and actions from store
   const isHydrated = useAuthStore((s) => s.hydrated);
   const setLocation = useAuthStore((s) => s.setLocation);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    const minTimer = setTimeout(() => setMinTimeElapsed(true), MIN_SPLASH_MS);
+    return () => clearTimeout(minTimer);
+  }, []);
 
   useEffect(() => {
     if (disabled) {
@@ -45,12 +53,36 @@ export function AppInitializer({
     initLocation();
   }, [disabled]);
 
-  // Block UI until:
-  //  Zustand has finished reading from AsyncStorage
-  //  Location has been resolved
-  if (!isHydrated || (locationLoading && !disabled)) {
-    return <SplashScreen />;
-  }
+  const isReady =
+    isHydrated && !(locationLoading && !disabled) && minTimeElapsed;
 
-  return <>{children}</>;
+  useEffect(() => {
+    if (isReady && splashVisible) {
+      Animated.timing(fadeOut, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setSplashVisible(false));
+    }
+  }, [isReady]);
+
+  return (
+    <>
+      {children}
+      {splashVisible && (
+        <Animated.View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: fadeOut,
+          }}
+        >
+          <SplashScreen />
+        </Animated.View>
+      )}
+    </>
+  );
 }

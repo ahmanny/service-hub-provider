@@ -1,39 +1,33 @@
 import { ThemedText } from "@/components/ui/Themed";
-import { useCountdown } from "@/hooks/use-countdown";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { useTimer } from "@/hooks/use-countdown";
+import { useTheme } from "@/hooks/use-theme-color";
 import { formatNumber } from "@/lib/utils";
 import { getBookingStatusConfig } from "@/lib/utils/booking.utils";
-import { BookingListItem } from "@/types/booking.types";
+import { BookingListItem, BookingStatus } from "@/types/booking.types";
 import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
-import duration from "dayjs/plugin/duration";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { AppAvatar } from "../ui/AppAvatar";
+import { PulseDot } from "../ui/PulseDot";
 import { CompleteContinueBookingButton } from "./BookingActions";
-
-dayjs.extend(duration);
 
 interface UpcomingBookingCardProps {
   item: BookingListItem;
-  onStart: (id: string) => void;
   onPress?: () => void;
 }
 
 export function UpcomingBookingCard({
   item,
-  onStart,
   onPress,
 }: UpcomingBookingCardProps) {
-  const cardBg = useThemeColor({}, "card");
-  const border = useThemeColor({}, "border");
-  const textSecondary = useThemeColor({}, "textSecondary");
-  const tint = useThemeColor({}, "tint");
-  const success = useThemeColor({}, "success");
-  const danger = useThemeColor({}, "danger");
-  const warning = useThemeColor({}, "warning");
+  const { tint, border, textSecondary, success, danger, warning, card } =
+    useTheme();
 
-  const { isExpired: isServiceTime } = useCountdown(item.scheduledAt);
+  //  Timers & Status Logic
+  const { timeLeft: arrivalTime } = useTimer(item.scheduledAt, "countdown");
+  const { timeLeft: activeTime } = useTimer(item.actualStartTime, "countup");
+  const { isExpired: isServiceTime } = useTimer(item.scheduledAt, "countdown");
 
   const statusConfig = getBookingStatusConfig(item.status, {
     tint,
@@ -44,14 +38,7 @@ export function UpcomingBookingCard({
     warning,
   });
 
-  const isInProgress = item.status === "in_progress";
-
-  const getElapsed = () => {
-    if (!item.actualStartTime) return null;
-    const diff = dayjs().diff(dayjs(item.actualStartTime), "minute");
-    if (diff < 60) return `${diff}m elapsed`;
-    return `${Math.floor(diff / 60)}h ${diff % 60}m elapsed`;
-  };
+  const isInProgress = item.status === BookingStatus.IN_PROGRESS;
 
   return (
     <Pressable
@@ -59,72 +46,72 @@ export function UpcomingBookingCard({
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: cardBg,
+          backgroundColor: card,
           borderColor: border,
           opacity: pressed ? 0.96 : 1,
         },
       ]}
     >
-      {/* HEADER SECTION */}
+      {/* HEADER: Service & Price */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <ThemedText style={styles.serviceName}>{item.serviceName}</ThemedText>
-
-          <View style={styles.headerSubRow}>
-            {/* NEW: Created At Timestamp */}
-            <ThemedText style={[styles.createdDate, { color: textSecondary }]}>
-              {dayjs(item.createdAt).format("D MMM, H:mm")}
-            </ThemedText>
-
-            {/* LIVE Status Indicator */}
-            {isInProgress && (
-              <>
-                <ThemedText
-                  style={[
-                    styles.createdDate,
-                    { color: textSecondary, marginHorizontal: 4 },
-                  ]}
-                >
-                  •
-                </ThemedText>
-                <View style={styles.liveContainer}>
-                  <View style={[styles.dot, { backgroundColor: success }]} />
-                  <ThemedText style={[styles.liveText, { color: success }]}>
-                    LIVE: {getElapsed()}
-                  </ThemedText>
-                </View>
-              </>
-            )}
-          </View>
+          <ThemedText style={[styles.createdDate, { color: textSecondary }]}>
+            {dayjs(item.createdAt).format("D MMM, H:mm")}
+          </ThemedText>
         </View>
 
-        <ThemedText style={[styles.price, { color: success }]}>
-          ₦{formatNumber(item.price)}
-        </ThemedText>
+        <View style={{ alignItems: "flex-end" }}>
+          <ThemedText style={[styles.price, { color: success }]}>
+            ₦{formatNumber(item.price)}
+          </ThemedText>
+          <ThemedText style={[styles.payoutLabel, { color: textSecondary }]}>
+            Earn
+          </ThemedText>
+        </View>
       </View>
 
-      {/* LOGISTICS SECTION */}
-      <View style={styles.detailsContainer}>
-        <View style={styles.infoRow}>
-          <Ionicons name="calendar" size={14} color={tint} />
-          <ThemedText style={[styles.infoText, { color: textSecondary }]}>
-            {dayjs(item.scheduledAt).format("ddd, DD MMM • h:mm A")}
-          </ThemedText>
+      {/* LOGISTICS SECTION: Time (Left) and Location (Right) */}
+      <View style={styles.logisticsRow}>
+        {/* TIME / LIVE TRACKING (Stays Left) */}
+        <View style={styles.logisticsItem}>
+          {isInProgress ? (
+            <View style={[styles.timerBadge, { backgroundColor: `${tint}10` }]}>
+              <PulseDot color={tint} />
+              <ThemedText style={[styles.timerText, { color: tint }]}>
+                Active • {activeTime}
+              </ThemedText>
+            </View>
+          ) : (
+            <View style={styles.infoRow}>
+              <Ionicons name="calendar-outline" size={14} color={tint} />
+              <ThemedText style={[styles.infoText, { color: textSecondary }]}>
+                {dayjs(item.scheduledAt).format("D MMM, h:mm A")}
+              </ThemedText>
+            </View>
+          )}
         </View>
-        <View style={styles.infoRow}>
-          <Ionicons name="location" size={14} color={tint} />
-          <ThemedText
-            style={[styles.infoText, { color: textSecondary }]}
-            numberOfLines={1}
-          >
-            {item.locationLabel}
-          </ThemedText>
+
+        {/* LOCATION (Pushed to Right) */}
+        <View style={{ alignItems: "flex-end" }}>
+          <View style={styles.infoRow}>
+            <Ionicons name="location-sharp" size={14} color={tint} />
+            <ThemedText
+              style={[
+                styles.infoText,
+                { color: textSecondary, textAlign: "right" },
+              ]}
+              numberOfLines={1}
+            >
+              {item.locationLabel}
+            </ThemedText>
+          </View>
         </View>
       </View>
 
       <View style={[styles.divider, { backgroundColor: border }]} />
 
-      {/* FOOTER SECTION */}
+      {/* FOOTER: Consumer & Status */}
       <View style={styles.footer}>
         <View style={styles.consumerInfo}>
           <AppAvatar
@@ -135,7 +122,6 @@ export function UpcomingBookingCard({
             }
             initials={item.consumer.firstName}
             size={28}
-            shape="rounded"
           />
           <ThemedText style={styles.consumerName}>
             {item.consumer.firstName}
@@ -148,11 +134,10 @@ export function UpcomingBookingCard({
               style={[styles.statusBadge, { backgroundColor: `${warning}15` }]}
             >
               <ThemedText style={[styles.statusText, { color: warning }]}>
-                AUTO-STARTED
+                AUTO
               </ThemedText>
             </View>
           )}
-
           <View
             style={[
               styles.statusBadge,
@@ -168,12 +153,13 @@ export function UpcomingBookingCard({
         </View>
       </View>
 
+      {/* PRIMARY ACTION BUTTON */}
       <CompleteContinueBookingButton
         bookingId={item._id}
         status={item.status}
         isServiceTime={isServiceTime}
         scheduledAt={item.scheduledAt}
-        onSuccess={() => console.log("Action performed successfully")}
+        onSuccess={() => {}}
       />
     </Pressable>
   );
@@ -185,11 +171,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     marginBottom: 16,
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 2,
   },
   header: {
     flexDirection: "row",
@@ -197,88 +183,52 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  headerSubRow: {
+  serviceName: { fontSize: 16, fontWeight: "800" },
+  createdDate: { fontSize: 11, fontWeight: "500", marginTop: 2 },
+  price: { fontSize: 18, fontWeight: "900" },
+  payoutLabel: { fontSize: 10, fontWeight: "700", textTransform: "uppercase" },
+
+  logisticsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  logisticsItem: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2,
   },
-  serviceName: {
-    fontSize: 16,
-    fontWeight: "800",
-    lineHeight: 20,
-  },
-  createdDate: {
-    fontSize: 12,
-    fontWeight: "500",
-    opacity: 0.6,
-  },
-  liveContainer: {
+  trackingContainer: { marginBottom: 8 },
+  timerBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  liveText: {
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  price: { fontSize: 17, fontWeight: "800" },
-  detailsContainer: {
+  timerText: { fontSize: 11, fontWeight: "800" },
+  infoRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 20,
-    marginBottom: 12,
+    alignItems: "center",
+    gap: 6,
   },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   infoText: { fontSize: 13, fontWeight: "600" },
-  divider: { height: 1, width: "100%", marginVertical: 12 },
+  arrivalText: { fontSize: 12, fontWeight: "800" },
+  divider: { height: 1, width: "100%", marginVertical: 14 },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
   },
-  consumerInfo: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#F3F4F6",
-  },
+  consumerInfo: { flexDirection: "row", alignItems: "center", gap: 8 },
   consumerName: { fontSize: 14, fontWeight: "700" },
-  timerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  timerText: { fontSize: 11, fontWeight: "800" },
-  actionRow: { flexDirection: "row", gap: 12 },
-  btn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  declineBtn: { borderWidth: 1 },
-  declineBtnText: { fontWeight: "700", fontSize: 14 },
-  acceptBtnText: { color: "#FFF", fontWeight: "700", fontSize: 14 },
-
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-  },
+  statusText: { fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
 });

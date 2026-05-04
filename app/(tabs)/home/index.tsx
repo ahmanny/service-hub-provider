@@ -3,7 +3,9 @@ import Mapbox from "@rnmapbox/maps";
 import React from "react";
 
 const accessToken =
-  "pk.eyJ1IjoiYWhtYW5ueSIsImEiOiJjbWplcjZlaDcwZ2VrM2RzbWdleGlhNmNzIn0.82jeiD0j7aR-Y5nj1T0ByA";
+  process.env.EXPO_PUBLIC_MAPBOX_KEY ||
+  process.env.EXPO_PUBLIC_MAPBOX_TOKEN ||
+  "";
 
 Mapbox.setAccessToken(accessToken);
 

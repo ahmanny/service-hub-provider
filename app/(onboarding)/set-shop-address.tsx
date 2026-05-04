@@ -29,6 +29,8 @@ export default function SetShopLocation() {
   const handleLocationSelected = async (data: {
     label: string;
     formattedAddress: string;
+    city?: string;
+    state?: string;
     latitude: number;
     longitude: number;
   }) => {

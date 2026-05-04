@@ -1,4 +1,4 @@
-import { IAvailabilityDay } from "@/types/provider.types";
+import { IAvailabilityDay } from "@/types/user.types";
 
 export const formatBookingDate = (isoString: string) => {
     const date = new Date(isoString);

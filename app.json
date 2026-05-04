@@ -1,16 +1,18 @@
 {
   "expo": {
-    "name": "Provider-app",
+    "name": "Proxxi Provider",
     "slug": "Provider-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "providerapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ahmanny27.Providerapp"
+      "bundleIdentifier": "com.ahmanny27.Providerapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,11 +21,12 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.ahmanny27.Providerapp",
       "googleServicesFile": "./google-services.json",
       "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
@@ -35,15 +38,22 @@
     "plugins": [
       "expo-router",
       [
+        "expo-updates",
+        {
+          "checkOnLaunch": "ALWAYS",
+          "enabled": true
+        }
+      ],
+      [
         "@rnmapbox/maps",
         {
-          "accessToken": "pk.eyJ1IjoiYWhtYW5ueSIsImEiOiJjbWplcjZlaDcwZ2VrM2RzbWdleGlhNmNzIn0.82jeiD0j7aR-Y5nj1T0ByA"
+          "accessToken": ""
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to track your location for service delivery."
+          "locationWhenInUsePermission": "Show current location on map."
         }
       ],
       [
@@ -55,9 +65,17 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to access your Face ID biometric data."
+        }
+      ],
       "expo-font",
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-community/datetimepicker",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -69,6 +87,12 @@
         "projectId": "fd8f44c1-36af-4c64-81fd-46d0126d21b9"
       }
     },
-    "owner": "ahmanny-27"
+    "owner": "ahmanny-27",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fd8f44c1-36af-4c64-81fd-46d0126d21b9"
+    }
   }
 }

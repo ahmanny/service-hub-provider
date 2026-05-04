@@ -1,6 +1,5 @@
-// stores/onboarding.store.ts
 import { ServiceType } from '@/constants/services';
-import { IAvailabilityDay } from '@/types/provider.types';
+import { IAvailabilityDay } from '@/types/user.types';
 import { create } from 'zustand';
 
 export interface SelectedService {
@@ -26,6 +25,8 @@ interface OnboardingState {
   shopAddress: {
     label: string;
     formattedAddress: string;
+    city?: string;
+    state?: string;
     latitude: number;
     longitude: number;
   } | null,
