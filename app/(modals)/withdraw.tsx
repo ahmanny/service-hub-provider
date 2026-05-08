@@ -1,10 +1,10 @@
 import { ThemedButton, ThemedText } from "@/components/ui/Themed";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { useAuthStore } from "@/stores/auth.store"; // Import store
+import { useAuthStore } from "@/stores/auth.store";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router"; // Import router
-import React, { useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,8 +12,12 @@ import {
   StyleSheet,
   TextInput,
   View,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { fetchEarningsDashboard } from "@/services/profile.service";
+import { requestWithdrawal } from "@/services/withdraw.service";
 
 export default function WithdrawScreen() {
   const router = useRouter();
@@ -21,14 +25,31 @@ export default function WithdrawScreen() {
   const payoutDetails = profile?.payoutDetails;
 
   const [amount, setAmount] = useState("");
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
   const tint = useThemeColor({}, "tint");
   const cardBg = useThemeColor({}, "card");
   const bg = useThemeColor({}, "background");
   const errorColor = useThemeColor({}, "danger");
 
-  // Mock balance - usually this would come from profile or a separate query
-  // const availableBalance = profile?.balance || 0;
-  const availableBalance = 400000; // Mock balance for demonstration
+  useEffect(() => {
+    loadBalance();
+  }, []);
+
+  const loadBalance = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchEarningsDashboard();
+      setAvailableBalance(response.data?.availableBalance || 0);
+    } catch (error) {
+      console.error("Failed to load balance:", error);
+      Alert.alert("Error", "Failed to load balance. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleQuickSelect = (percent: number) => {
     const value = Math.floor(availableBalance * percent).toString();
@@ -41,6 +62,49 @@ export default function WithdrawScreen() {
     router.push("/(profile-edit)/payout-details");
   };
 
+  const handleWithdraw = async () => {
+    if (!amount || Number(amount) <= 0) {
+      Alert.alert("Invalid Amount", "Please enter a valid amount.");
+      return;
+    }
+
+    if (Number(amount) > availableBalance) {
+      Alert.alert("Insufficient Balance", "Amount exceeds your available balance.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await requestWithdrawal(Number(amount));
+      
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      Alert.alert(
+        "Withdrawal Requested",
+        `Your withdrawal of ₦${Number(amount).toLocaleString()} has been submitted and is pending approval.`,
+        [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error("Withdrawal error:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        "Withdrawal Failed",
+        error?.message || "Failed to submit withdrawal request. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isValidAmount = amount && Number(amount) > 0 && Number(amount) <= availableBalance;
+  const minWithdrawal = 1000;
+  const isBelowMin = amount && Number(amount) > 0 && Number(amount) < minWithdrawal;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["bottom"]}>
       <KeyboardAvoidingView
@@ -52,9 +116,13 @@ export default function WithdrawScreen() {
           {/* BALANCE HEADER */}
           <View style={styles.balanceHeader}>
             <ThemedText style={styles.label}>Available Balance</ThemedText>
-            <ThemedText type="title" style={styles.balanceAmount}>
-              ₦{availableBalance.toLocaleString()}
-            </ThemedText>
+            {loading ? (
+              <ActivityIndicator size="large" color={tint} />
+            ) : (
+              <ThemedText type="title" style={styles.balanceAmount}>
+                ₦{availableBalance.toLocaleString()}
+              </ThemedText>
+            )}
           </View>
 
           {/* AMOUNT INPUT */}
@@ -68,23 +136,33 @@ export default function WithdrawScreen() {
               onChangeText={setAmount}
               autoFocus
               placeholderTextColor="#999"
+              editable={!loading}
             />
           </View>
 
+          {/* ERROR MESSAGE */}
+          {isBelowMin && (
+            <ThemedText style={styles.errorText}>
+              Minimum withdrawal is ₦{minWithdrawal.toLocaleString()}
+            </ThemedText>
+          )}
+
           {/* QUICK SELECT BUTTONS */}
-          <View style={styles.quickSelectRow}>
-            {[0.25, 0.5, 0.75, 1].map((pct) => (
-              <Pressable
-                key={pct}
-                onPress={() => handleQuickSelect(pct)}
-                style={[styles.pctBtn, { borderColor: tint + "40" }]}
-              >
-                <ThemedText style={{ color: tint, fontWeight: "600" }}>
-                  {pct === 1 ? "MAX" : `${pct * 100}%`}
-                </ThemedText>
-              </Pressable>
-            ))}
-          </View>
+          {!loading && (
+            <View style={styles.quickSelectRow}>
+              {[0.25, 0.5, 0.75, 1].map((pct) => (
+                <Pressable
+                  key={pct}
+                  onPress={() => handleQuickSelect(pct)}
+                  style={[styles.pctBtn, { borderColor: tint + "40" }]}
+                >
+                  <ThemedText style={{ color: tint, fontWeight: "600" }}>
+                    {pct === 1 ? "MAX" : `${pct * 100}%`}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          )}
 
           {/* BANK SELECTION */}
           <ThemedText
@@ -140,36 +218,36 @@ export default function WithdrawScreen() {
           {/* CONFIRM BUTTON */}
           <ThemedButton
             title={
-              payoutDetails ? "Confirm Withdrawal" : "Set up Payout Details"
+              submitting
+                ? "Processing..."
+                : payoutDetails
+                ? "Confirm Withdrawal"
+                : "Set up Payout Details"
             }
             disabled={
-              payoutDetails
-                ? !amount ||
-                  Number(amount) <= 0 ||
-                  Number(amount) > availableBalance
-                : false
+              submitting ||
+              (payoutDetails
+                ? !isValidAmount || isBelowMin
+                : false)
             }
             onPress={() => {
               if (!payoutDetails) {
                 navigateToPayout();
                 return;
               }
-              // Withdrawal logic here
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
+              handleWithdraw();
             }}
+            loading={submitting}
             style={[
               styles.confirmBtn,
               !payoutDetails && { backgroundColor: errorColor + "20" },
             ]}
-            // Optional: change text color for missing payout
             textStyle={!payoutDetails ? { color: errorColor } : undefined}
           />
 
           <ThemedText style={styles.disclaimer}>
             {payoutDetails
-              ? "Funds usually arrive within 10–30 minutes."
+              ? "Funds usually arrive within 10–30 minutes after approval."
               : "You must verify a bank account before withdrawing."}
           </ThemedText>
         </View>
@@ -189,6 +267,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   balanceAmount: { fontSize: 32, fontWeight: "800", marginTop: 4 },
+  errorText: {
+    color: "#ef4444",
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: "center",
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
