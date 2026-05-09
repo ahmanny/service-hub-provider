@@ -56,7 +56,7 @@ export default function NotificationsModal() {
     const cardBg = useThemeColor({}, "card");
     const tint = useThemeColor({}, "tint");
     const textColor = useThemeColor({}, "text");
-    const mutedColor = useThemeColor({}, "muted");
+    const mutedColor = useThemeColor({}, "textSecondary");
 
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);

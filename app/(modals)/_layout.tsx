@@ -23,6 +23,13 @@ export default function ModalLayout() {
       }}
     >
       <Stack.Screen name="withdraw" options={{ title: "Withdraw Funds" }} />
+      <Stack.Screen
+        name="notifications"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
     </Stack>
   );
 }
