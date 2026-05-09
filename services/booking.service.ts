@@ -5,7 +5,6 @@ import { BookingActionPayload, BookingDetails, BookingRequestPayload, fetchBooki
 const BOOKINGS_ENDPOINT = "/bookings";
 
 export const sendRequest = async (payload: BookingRequestPayload) => {
-    console.log(payload)
     const { data } = await API.post(`${BOOKINGS_ENDPOINT}/request`, payload);
     return data
 };

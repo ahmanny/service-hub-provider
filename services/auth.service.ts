@@ -23,7 +23,6 @@ export const getotpcooldown = async (payload: { phone: string }) => {
 
 export const logout = async () => {
     const refresh_token = await getRefreshToken()
-    console.log("refresh_token:", refresh_token)
     const { data } = await API.post("/auth/provider/logout", { refresh_token });
     return data
 };

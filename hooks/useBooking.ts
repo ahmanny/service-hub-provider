@@ -12,8 +12,7 @@ interface FetchBookingsResponce {
 export const useSendBookingRequest = () => {
     return useMutation({
         mutationFn: sendRequest,
-        onSuccess: (data) => {
-            console.log("Booking created:", data);
+        onSuccess: () => {
         },
     });
 };
@@ -43,9 +42,7 @@ export const useBookingActions = () => {
 
     return useMutation({
         mutationFn: handleBookingAction,
-        onSuccess: (data, variables) => {
-            console.log(`Booking ${variables.action} successful`);
-
+onSuccess: (data, variables) => {
             // Invalidate relevant queries to refresh the UI
             queryClient.invalidateQueries({ queryKey: ["bookings"] });
             queryClient.invalidateQueries({ queryKey: ["booking-details", variables.bookingId] });

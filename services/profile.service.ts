@@ -24,7 +24,6 @@ export async function addAddress(payload: UserAddressPayload) {
     return data;
 }
 export async function updateAddress(addressId: string, payload: Partial<UserAddressPayload>) {
-    console.log("payload", payload)
     const { data } = await API.patch(`/consumer/address/${addressId}`, payload);
     return data;
 }
@@ -129,7 +128,6 @@ export async function resolveBankAccount(accountNumber: string, bankCode: string
     const { data } = await API.get("/provider/resolve-bank", {
         params: { accountNumber, bankCode },
     });
-    console.log("resolveBankAccount data", data);
     return data; // returns { accountName, accountNumber }
 }
 

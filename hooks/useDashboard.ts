@@ -20,9 +20,6 @@ export const useToggleAvailability = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-
-      console.log("Availability switched:", data.isAvailable);
-      console.log("Availability switched return data:", data);
     },
 
     onError: (error) => {

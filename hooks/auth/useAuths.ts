@@ -6,24 +6,21 @@ import { useMutation } from "@tanstack/react-query";
 export const useSendOtp = () => {
     return useMutation({
         mutationFn: sendotp,
-        onSuccess: async (data) => {
-            console.log(data)
+        onSuccess: async () => {
         },
     });
 };
 export const useResendOtp = () => {
     return useMutation({
         mutationFn: resendotp,
-        onSuccess: async (data) => {
-            console.log(data)
+        onSuccess: async () => {
         },
     });
 };
 export const useGetOtpCooldown = () => {
     return useMutation({
         mutationFn: getotpcooldown,
-        onSuccess: async (data) => {
-            console.log(data)
+        onSuccess: async () => {
         },
     });
 };
