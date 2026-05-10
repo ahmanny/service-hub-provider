@@ -1,12 +1,17 @@
 import API from "@/lib/axios";
 
+type ApiEnvelope<T> = {
+    data?: T;
+    message?: string;
+};
+
 export interface NotificationItem {
     _id: string;
     userId: string;
     role: "consumer" | "provider";
     title: string;
     body: string;
-    type: "welcome" | "booking" | "payment" | "withdrawal" | "approval" | "system";
+    type: "welcome" | "booking" | "payment" | "withdrawal" | "approval" | "rejection" | "system";
     data?: Record<string, any>;
     isRead: boolean;
     createdAt: string;
@@ -24,24 +29,32 @@ export interface NotificationsResponse {
     unreadCount: number;
 }
 
+const unwrapApiData = <T>(response: T | ApiEnvelope<T>): T => {
+    if (response && typeof response === "object" && "data" in response) {
+        return (response as ApiEnvelope<T>).data as T;
+    }
+
+    return response as T;
+};
+
 export const getNotifications = async (page: number = 1, limit: number = 20): Promise<NotificationsResponse> => {
-    const { data } = await API.get("/provider/notifications", {
+    const response = await API.get("/provider/notifications", {
         params: { page, limit },
     });
-    return data.data;
+    return unwrapApiData<NotificationsResponse>(response);
 };
 
 export const getUnreadCount = async (): Promise<{ unreadCount: number }> => {
-    const { data } = await API.get("/provider/notifications/unread-count");
-    return data.data;
+    const response = await API.get("/provider/notifications/unread-count");
+    return unwrapApiData<{ unreadCount: number }>(response);
 };
 
 export const markNotificationRead = async (notificationId: string) => {
-    const { data } = await API.patch(`/provider/notifications/${notificationId}/read`);
-    return data.data;
+    const response = await API.patch(`/provider/notifications/${notificationId}/read`);
+    return unwrapApiData(response);
 };
 
 export const markAllNotificationsRead = async () => {
-    const { data } = await API.patch("/provider/notifications/read-all");
-    return data.data;
+    const response = await API.patch("/provider/notifications/read-all");
+    return unwrapApiData(response);
 };

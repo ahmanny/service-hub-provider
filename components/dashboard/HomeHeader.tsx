@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Href, useRouter } from "expo-router";
 import { ThemedText } from "../ui/Themed";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useNotificationCount } from "@/hooks/useNotificationCount";
@@ -19,10 +19,11 @@ function NotificationBell() {
   const { unreadCount } = useNotificationCount();
   const tint = useThemeColor({}, "tint");
   const bg = useThemeColor({}, "background");
+  const notificationsRoute = "/(modals)/notifications" as Href;
 
   return (
     <Pressable
-      onPress={() => router.push("/(modals)/notifications")}
+      onPress={() => router.push(notificationsRoute)}
       style={[styles.bellButton, { backgroundColor: bg }]}
     >
       <Ionicons name="notifications-outline" size={24} color={tint} />

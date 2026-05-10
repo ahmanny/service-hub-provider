@@ -34,8 +34,31 @@ const getNotificationIcon = (type: string) => {
     }
 };
 
-const getTimeAgo = (dateString: string) => {
+const normalizeNotification = (item: Partial<NotificationItem>): NotificationItem | null => {
+    if (!item || typeof item !== "object") return null;
+
+    const id = typeof item._id === "string" ? item._id : String(item._id ?? "");
+    if (!id) return null;
+
+    return {
+        _id: id,
+        userId: typeof item.userId === "string" ? item.userId : String(item.userId ?? ""),
+        role: item.role === "consumer" ? "consumer" : "provider",
+        title: typeof item.title === "string" ? item.title : "Notification",
+        body: typeof item.body === "string" ? item.body : "",
+        type: typeof item.type === "string" ? item.type as NotificationItem["type"] : "system",
+        data: item.data && typeof item.data === "object" ? item.data : {},
+        isRead: Boolean(item.isRead),
+        createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString(),
+        readAt: typeof item.readAt === "string" ? item.readAt : undefined,
+    };
+};
+
+const getTimeAgo = (dateString?: string) => {
+    if (!dateString) return "";
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
+
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     
@@ -71,15 +94,21 @@ export default function NotificationsModal() {
             else if (pageNum === 1) setLoading(true);
             
             const result = await getNotifications(pageNum, 20);
+            const nextNotifications = Array.isArray(result?.notifications)
+                ? result.notifications
+                    .map(normalizeNotification)
+                    .filter((item): item is NotificationItem => Boolean(item))
+                : [];
+            const pagination = result?.pagination ?? { page: pageNum, pages: 1 };
             
             if (isRefresh || pageNum === 1) {
-                setNotifications(result.notifications);
+                setNotifications(nextNotifications);
             } else {
-                setNotifications(prev => [...prev, ...result.notifications]);
+                setNotifications(prev => [...prev, ...nextNotifications]);
             }
             
-            setUnreadCount(result.unreadCount);
-            setHasMore(result.pagination.page < result.pagination.pages);
+            setUnreadCount(Number(result?.unreadCount ?? 0));
+            setHasMore(Number(pagination.page ?? pageNum) < Number(pagination.pages ?? 1));
             setPage(pageNum);
         } catch (error) {
             console.error("Failed to fetch notifications:", error);
@@ -213,7 +242,7 @@ export default function NotificationsModal() {
                 <FlatList
                     data={notifications}
                     renderItem={renderNotification}
-                    keyExtractor={(item) => item._id}
+                    keyExtractor={(item, index) => item._id || `notification-${index}`}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={renderEmpty}
                     refreshControl={
