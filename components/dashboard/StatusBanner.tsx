@@ -7,9 +7,10 @@ import { ThemedText } from "../ui/Themed";
 interface Props {
   status: ProfileStatus;
   reason?: string;
+  onDismiss?: () => void;
 }
 
-export const StatusBanner = ({ status, reason }: Props) => {
+export const StatusBanner = ({ status, reason, onDismiss }: Props) => {
   const [visible, setVisible] = useState(true);
 
   const config = {
@@ -40,6 +41,11 @@ export const StatusBanner = ({ status, reason }: Props) => {
 
   if (!current || !visible) return null;
 
+  const handleDismiss = () => {
+    setVisible(false);
+    onDismiss?.();
+  };
+
   return (
     <View
       style={[
@@ -56,7 +62,7 @@ export const StatusBanner = ({ status, reason }: Props) => {
           <ThemedText style={styles.desc}>{current.desc}</ThemedText>
 
           <TouchableOpacity
-            onPress={() => status === "approved" && setVisible(false)}
+            onPress={handleDismiss}
           >
             <ThemedText style={[styles.action, { color: current.color }]}>
               {current.action}
@@ -65,7 +71,7 @@ export const StatusBanner = ({ status, reason }: Props) => {
         </View>
 
         {status === "approved" && (
-          <TouchableOpacity onPress={() => setVisible(false)}>
+          <TouchableOpacity onPress={handleDismiss}>
             <Ionicons name="close" size={20} color={current.color} />
           </TouchableOpacity>
         )}

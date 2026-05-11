@@ -58,8 +58,8 @@ export interface ProviderProfile {
 
 
     status: ProfileStatus
-
     rejectionReason?: string
+    statusBannerDismissed?: boolean
 
     verification?: {
         idUri: string;

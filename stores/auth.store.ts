@@ -13,6 +13,7 @@ type AuthState = {
 
   login: (user: ProviderProfile, hasProfile: boolean) => void;
   logout: () => void;
+  setUser: (user: ProviderProfile) => void;
 };
 
 
@@ -39,6 +40,8 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           hasProfile: false,
         }),
+
+      setUser: (user) => set({ user }),
     }),
     {
       name: "auth-store",

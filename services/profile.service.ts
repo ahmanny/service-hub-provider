@@ -136,7 +136,10 @@ export async function resolveBankAccount(accountNumber: string, bankCode: string
  */
 export async function fetchEarningsDashboard() {
     const { data } = await API.get("/provider/earnings-dashboard");
+    return data;
+}
 
-    // console.log("fetchEarningsDashboard data", data);
+export async function dismissStatusBanner() {
+    const { data } = await API.patch("/provider/dismiss-status-banner");
     return data;
 }

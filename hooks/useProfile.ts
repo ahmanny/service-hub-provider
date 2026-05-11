@@ -1,4 +1,4 @@
-import { changeEmail, completeProfile, fetchBanks, fetchEarningsDashboard, fetchProfile, resolveBankAccount, updateAvailability, updateBio, updateDeliveryMode, updateName, updatePayoutDetails, updatePhone, updateProfilePhoto, updateServiceArea, updateServices, updateShopLocation } from "@/services/profile.service";
+import { changeEmail, completeProfile, dismissStatusBanner, fetchBanks, fetchEarningsDashboard, fetchProfile, resolveBankAccount, updateAvailability, updateBio, updateDeliveryMode, updateName, updatePayoutDetails, updatePhone, updateProfilePhoto, updateServiceArea, updateServices, updateShopLocation } from "@/services/profile.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { SelectedService } from "@/stores/onboarding.store";
 import { ProviderProfile } from "@/types/user.types";
@@ -178,6 +178,18 @@ export const useResolveBank = () => {
     return useMutation({
         mutationFn: ({ accountNumber, bankCode }: { accountNumber: string; bankCode: string }) =>
             resolveBankAccount(accountNumber, bankCode),
+    });
+};
+export const useDismissStatusBanner = () => {
+    return useMutation({
+        mutationFn: dismissStatusBanner,
+        onSuccess: () => {
+            const { setUser } = useAuthStore.getState();
+            const current = useAuthStore.getState().user;
+            if (current) {
+                setUser({ ...current, statusBannerDismissed: true } as any);
+            }
+        },
     });
 };
 
