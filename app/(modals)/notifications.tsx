@@ -2,35 +2,37 @@ import { ThemedText } from "@/components/ui/Themed";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
+import type { ComponentProps } from "react";
 import {
     ActivityIndicator,
     FlatList,
     Pressable,
     RefreshControl,
     StyleSheet,
-    Text,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getNotifications, markAllNotificationsRead, markNotificationRead, NotificationItem } from "@/services/notification.service";
 
-const getNotificationIcon = (type: string) => {
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+const getNotificationIcon = (type: string): IoniconName => {
     switch (type) {
         case "welcome":
-            return "🎉";
+            return "sparkles-outline";
         case "booking":
-            return "📅";
+            return "calendar-outline";
         case "payment":
-            return "💰";
+            return "card-outline";
         case "withdrawal":
-            return "💸";
+            return "wallet-outline";
         case "approval":
-            return "✅";
+            return "checkmark-circle-outline";
         case "rejection":
-            return "❌";
+            return "close-circle-outline";
         default:
-            return "🔔";
+            return "notifications-outline";
     }
 };
 
@@ -70,7 +72,7 @@ const getTimeAgo = (dateString?: string) => {
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
 };
 
 export default function NotificationsModal() {
@@ -84,14 +86,20 @@ export default function NotificationsModal() {
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const fetchingRef = useRef(false);
 
     const fetchNotifications = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
+        if (fetchingRef.current) return;
+        fetchingRef.current = true;
+
         try {
             if (isRefresh) setRefreshing(true);
             else if (pageNum === 1) setLoading(true);
+            else setLoadingMore(true);
             
             const result = await getNotifications(pageNum, 20);
             const nextNotifications = Array.isArray(result?.notifications)
@@ -104,7 +112,11 @@ export default function NotificationsModal() {
             if (isRefresh || pageNum === 1) {
                 setNotifications(nextNotifications);
             } else {
-                setNotifications(prev => [...prev, ...nextNotifications]);
+                setNotifications(prev => {
+                    const existingIds = new Set(prev.map(item => item._id));
+                    const uniqueNext = nextNotifications.filter(item => !existingIds.has(item._id));
+                    return [...prev, ...uniqueNext];
+                });
             }
             
             setUnreadCount(Number(result?.unreadCount ?? 0));
@@ -113,7 +125,9 @@ export default function NotificationsModal() {
         } catch (error) {
             console.error("Failed to fetch notifications:", error);
         } finally {
+            fetchingRef.current = false;
             setLoading(false);
+            setLoadingMore(false);
             setRefreshing(false);
         }
     }, []);
@@ -127,7 +141,7 @@ export default function NotificationsModal() {
     };
 
     const handleLoadMore = () => {
-        if (hasMore && !loading) {
+        if (hasMore && !loading && !refreshing && !loadingMore && notifications.length >= 20) {
             fetchNotifications(page + 1);
         }
     };
@@ -173,10 +187,10 @@ export default function NotificationsModal() {
                 styles.notificationItem,
                 { backgroundColor: cardBg },
                 !item.isRead && { borderLeftWidth: 3, borderLeftColor: tint },
-            ]}
+            ]} 
         >
             <View style={styles.iconContainer}>
-                <Text style={styles.icon}>{getNotificationIcon(item.type)}</Text>
+                <Ionicons name={getNotificationIcon(item.type)} size={24} color={tint} />
             </View>
             <View style={styles.contentContainer}>
                 <View style={styles.headerRow}>
@@ -207,7 +221,7 @@ export default function NotificationsModal() {
         <View style={styles.emptyContainer}>
             <Ionicons name="notifications-outline" size={64} color={mutedColor} />
             <ThemedText style={[styles.emptyText, { color: mutedColor }]}>
-                No notifications yet
+                No notifications yet update
             </ThemedText>
             <ThemedText style={[styles.emptySubtext, { color: mutedColor }]}>
                 You'll see updates about your jobs and earnings here
@@ -255,6 +269,11 @@ export default function NotificationsModal() {
                     onEndReached={handleLoadMore}
                     onEndReachedThreshold={0.5}
                     showsVerticalScrollIndicator={false}
+                    ListFooterComponent={
+                        loadingMore ? (
+                            <ActivityIndicator style={styles.footerLoader} color={tint} />
+                        ) : null
+                    }
                 />
             )}
         </SafeAreaView>
@@ -307,9 +326,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginRight: 12,
     },
-    icon: {
-        fontSize: 24,
-    },
     contentContainer: {
         flex: 1,
     },
@@ -330,6 +346,9 @@ const styles = StyleSheet.create({
     body: {
         fontSize: 13,
         lineHeight: 18,
+    },
+    footerLoader: {
+        marginVertical: 16,
     },
     unreadDot: {
         width: 8,

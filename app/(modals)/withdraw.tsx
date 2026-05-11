@@ -101,9 +101,9 @@ export default function WithdrawScreen() {
     }
   };
 
-  const isValidAmount = amount && Number(amount) > 0 && Number(amount) <= availableBalance;
+  const isValidAmount = Boolean(amount) && Number(amount) > 0 && Number(amount) <= availableBalance;
   const minWithdrawal = 1000;
-  const isBelowMin = amount && Number(amount) > 0 && Number(amount) < minWithdrawal;
+  const isBelowMin = Boolean(amount) && Number(amount) > 0 && Number(amount) < minWithdrawal;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["bottom"]}>
