@@ -2,6 +2,7 @@ import { StatusBanner } from "@/components/dashboard/StatusBanner";
 import { spacing } from "@/constants/Layout";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useGetDashboardData } from "@/hooks/useDashboard";
+import { useDismissStatusBanner } from "@/hooks/useProfile";
 import { getGreeting } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth.store";
 import React from "react";
@@ -29,10 +30,12 @@ export default function Home() {
     isRefetching,
     error,
   } = useGetDashboardData();
+  const dismissBanner = useDismissStatusBanner();
 
   if (!profile) return null;
 
   const isApproved = profile.status === "approved";
+  const shouldShowBanner = !profile.statusBannerDismissed;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
@@ -56,10 +59,13 @@ export default function Home() {
           isOnline={profile.isAvailable}
         />
 
-        <StatusBanner
-          status={profile.status}
-          reason={profile.rejectionReason}
-        />
+        {shouldShowBanner && (
+          <StatusBanner
+            status={profile.status}
+            reason={profile.rejectionReason}
+            onDismiss={dismissBanner.mutate}
+          />
+        )}
 
         {isQueryLoading ? (
           <HomeScreenSkeleton />
